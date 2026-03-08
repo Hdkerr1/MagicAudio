@@ -472,7 +472,7 @@ export class AudioEngine {
     }
     this.pausedAt = time;
     this.currentMode = mode;
-    this.chainBuilt = false; // Force chain rebuild for new mode
+    
     if (wasPlaying) this.play();
     this.emitState();
   }
