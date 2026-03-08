@@ -228,6 +228,12 @@ export class AudioEngine {
       if (key === 'hall' && this.liveNodes.hallWetGain) {
         this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.45, this.ctx!.currentTime, 0.05);
       }
+      if (key === 'stereoWidth' && this.liveNodes.stereoWidthGain) {
+        this.liveNodes.stereoWidthGain.gain.setTargetAtTime(0.5 + p.stereoWidth * 1.0, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+      }
     }
 
     if (mode === 'lofi' && this.currentMode === 'lofi') {
@@ -243,6 +249,17 @@ export class AudioEngine {
       }
       if (key === 'wobble' && this.liveNodes.lfoGain) {
         this.liveNodes.lfoGain.gain.setTargetAtTime(p.wobble * 0.002, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+      }
+    }
+
+    // Slowed-reverb spatial
+    if (mode === 'slowed-reverb' && this.currentMode === 'slowed-reverb') {
+      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
+        const p = this.params['slowed-reverb'];
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
       }
     }
   }
