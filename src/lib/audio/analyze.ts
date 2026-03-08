@@ -93,25 +93,25 @@ export function autoTuneParams(analysis: AudioAnalysis): ModeParams {
 
   return {
     'slowed-reverb': {
-      // Bright, energetic tracks → more slowing + reverb for contrast
-      // Already slow/mellow → less drastic
       speed: energy > 0.5 ? 0.78 + (1 - energy) * 0.12 : 0.85 + (1 - energy) * 0.1,
       reverbMix: brightness > 0.15 ? 0.55 + brightness * 0.8 : 0.5,
       reverbDecay: energy > 0.5 ? 4.5 + energy * 2 : 3 + energy * 2,
+      spatial: 0.5 + brightness * 0.3,
     },
     'remix': {
       bass: bassRatio > 0.4 ? 0.3 + (1 - bassRatio) * 0.4 : 0.5 + (1 - bassRatio) * 0.3,
       presence: brightness < 0.1 ? 0.6 + (1 - brightness) * 0.2 : 0.4 + brightness * 0.3,
       punch: dynamicRange > 0.4 ? 0.4 + dynamicRange * 0.3 : 0.5 + (1 - dynamicRange) * 0.2,
-      // More hall on spacious/dynamic tracks, less on dense/compressed
       hall: dynamicRange > 0.3 ? 0.35 + dynamicRange * 0.25 : 0.3,
+      stereoWidth: 0.5 + dynamicRange * 0.2,
+      spatial: 0.5 + brightness * 0.2,
     },
     'lofi': {
-      // High energy → slow more, add more warmth
       speed: energy > 0.5 ? 0.82 : 0.88,
       warmth: brightness > 0.15 ? 0.5 + brightness * 1.5 : 0.4,
-      crackle: energy > 0.5 ? 0.15 : 0.25, // less crackle on loud tracks
+      crackle: energy > 0.5 ? 0.15 : 0.25,
       wobble: 0.25 + (1 - energy) * 0.15,
+      spatial: 0.35 + (1 - energy) * 0.2,
     },
   };
 }
