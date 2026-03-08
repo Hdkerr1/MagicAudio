@@ -788,7 +788,9 @@ export class AudioEngine {
     inputGain.connect(subCut);
     subCut.connect(bassShelf);
     bassShelf.connect(subBassBoost);
-    subBassBoost.connect(bodyBoost);
+    subBassBoost.connect(subBass2);
+    subBass2.connect(kickBody);
+    kickBody.connect(bodyBoost);
     bodyBoost.connect(mudCut);
     mudCut.connect(presenceBoost);
     presenceBoost.connect(airShelf);
