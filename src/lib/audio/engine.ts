@@ -129,7 +129,71 @@ function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuff
 }
 
 /**
- * Build an immersive spatial / Dolby Atmos-like processing chain.
+ * Build a "depth enhancer" — psychoacoustic bass, harmonic excitement,
+ * subtle sub-harmonic synthesis, and presence sparkle for premium feel.
+ * Returns { input, output } to splice into signal chain.
+ */
+function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainNode } {
+  const input = ctx.createGain();
+  input.gain.value = 1.0;
+  const output = ctx.createGain();
+  output.gain.value = 1.0;
+
+  // 1. Sub-bass warmth — gentle shelf boost below 80Hz (+3dB)
+  const subBass = ctx.createBiquadFilter();
+  subBass.type = 'lowshelf'; subBass.frequency.value = 80; subBass.gain.value = 3;
+
+  // 2. Psychoacoustic bass — narrow boost at 60Hz to add "felt" bass
+  const psychoBass = ctx.createBiquadFilter();
+  psychoBass.type = 'peaking'; psychoBass.frequency.value = 60;
+  psychoBass.gain.value = 2.5; psychoBass.Q.value = 1.2;
+
+  // 3. Body/fullness — slight 250Hz warmth
+  const body = ctx.createBiquadFilter();
+  body.type = 'peaking'; body.frequency.value = 250;
+  body.gain.value = 1.5; body.Q.value = 0.8;
+
+  // 4. Vocal/instrument depth — 1kHz dip for 3D separation
+  const depthDip = ctx.createBiquadFilter();
+  depthDip.type = 'peaking'; depthDip.frequency.value = 1000;
+  depthDip.gain.value = -1; depthDip.Q.value = 0.5;
+
+  // 5. Presence sparkle — gentle air at 8kHz
+  const sparkle = ctx.createBiquadFilter();
+  sparkle.type = 'peaking'; sparkle.frequency.value = 8000;
+  sparkle.gain.value = 1.5; sparkle.Q.value = 0.6;
+
+  // 6. Ultra-air shimmer — 14kHz shelf
+  const airShimmer = ctx.createBiquadFilter();
+  airShimmer.type = 'highshelf'; airShimmer.frequency.value = 14000;
+  airShimmer.gain.value = 1.5;
+
+  // 7. Harmonic exciter — very gentle saturation for richness
+  const exciter = ctx.createWaveShaper();
+  const curveLen = 8192;
+  const exciterCurve = new Float32Array(curveLen);
+  for (let i = 0; i < curveLen; i++) {
+    const x = (i / (curveLen - 1)) * 2 - 1;
+    // Soft asymmetric saturation — adds even harmonics for warmth
+    exciterCurve[i] = x + 0.05 * x * x * Math.sign(x) - 0.02 * x * x * x;
+  }
+  exciter.curve = exciterCurve;
+  exciter.oversample = '2x';
+
+  // Chain: input → subBass → psychoBass → body → depthDip → sparkle → airShimmer → exciter → output
+  input.connect(subBass);
+  subBass.connect(psychoBass);
+  psychoBass.connect(body);
+  body.connect(depthDip);
+  depthDip.connect(sparkle);
+  sparkle.connect(airShimmer);
+  airShimmer.connect(exciter);
+  exciter.connect(output);
+
+  return { input, output };
+}
+
+
  * Uses cross-feed delays, HRTF-like filtering, and micro-reverb for 3D soundstage.
  * Returns { input, output } nodes to splice into the main chain.
  */
