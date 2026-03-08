@@ -6,17 +6,9 @@ import { toast } from 'sonner';
 
 const Index = () => {
   const {
-    state,
-    isLoaded,
-    fileName,
-    isExporting,
-    loadFile,
-    togglePlay,
-    seekTo,
-    setMode,
-    getAnalyser,
-    exportAudio,
-    reset,
+    state, params, isLoaded, fileName, isExporting,
+    loadFile, togglePlay, seekTo, setMode, getAnalyser,
+    updateParam, exportAudio, reset,
   } = useAudioEngine();
 
   const handleFileSelected = useCallback(async (file: File) => {
@@ -52,11 +44,13 @@ const Index = () => {
   return (
     <StudioView
       state={state}
+      params={params}
       fileName={fileName}
       isExporting={isExporting}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
       onModeChange={setMode}
+      onParamChange={updateParam}
       onExport={handleExport}
       onReset={reset}
       getAnalyser={getAnalyser}
