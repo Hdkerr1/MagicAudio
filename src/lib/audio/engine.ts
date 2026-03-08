@@ -548,10 +548,18 @@ export class AudioEngine {
       await this.ctx.resume();
     }
     
-    this.stopSource();
-    this.isPlaying = false;
-    this.buildChain();
+    // Only rebuild chain if mode changed or chain doesn't exist
+    const needsChainRebuild = this.chainMode !== this.currentMode || !this.analyser || !this.gainNode;
+    
+    // Smoothly stop current source (crossfade out)
+    this.stopSourceSmooth();
+    
+    if (needsChainRebuild) {
+      this.buildChain();
+      this.chainMode = this.currentMode;
+    }
 
+    // Create and start new source
     this.sourceNode = this.ctx.createBufferSource();
     this.sourceNode.buffer = this.audioBuffer;
 
@@ -569,6 +577,12 @@ export class AudioEngine {
       if (this.isPlaying) { this.isPlaying = false; this.pausedAt = 0; this.emitState(); }
     };
 
+    // Fade in to prevent click
+    if (this.gainNode) {
+      this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+      this.gainNode.gain.linearRampToValueAtTime(0.9, this.ctx.currentTime + 0.015);
+    }
+
     const offset = this.pausedAt * rate;
     this.sourceNode.start(0, Math.min(Math.max(0, offset), this.audioBuffer.duration - 0.01));
     this.startedAt = this.ctx.currentTime;
@@ -580,7 +594,15 @@ export class AudioEngine {
   pause() {
     if (!this.isPlaying) return;
     this.pausedAt = this.getCurrentTime();
-    this.stopSource();
+    // Fade out then stop to prevent click
+    if (this.gainNode && this.ctx) {
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
+      this.gainNode.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.02);
+      // Stop source after fade completes
+      setTimeout(() => this.stopSourceImmediate(), 25);
+    } else {
+      this.stopSourceImmediate();
+    }
     this.isPlaying = false;
     this.emitState();
   }
@@ -588,15 +610,23 @@ export class AudioEngine {
   async seekTo(time: number) {
     const wasPlaying = this.isPlaying;
     const clampedTime = Math.max(0, Math.min(time, this.getDuration()));
-    
-    if (wasPlaying) {
-      this.stopSource();
-      this.isPlaying = false;
-    }
     this.pausedAt = clampedTime;
     
     if (wasPlaying) {
-      await this.play();
+      // Debounce rapid seeks (dragging waveform) — only restart after 50ms of no seeks
+      if (this.seekDebounce) clearTimeout(this.seekDebounce);
+      
+      // Immediately stop current source
+      this.stopSourceSmooth();
+      this.isPlaying = false;
+      
+      this.seekDebounce = setTimeout(async () => {
+        this.seekDebounce = null;
+        await this.play();
+      }, 50);
+      
+      // Update UI immediately
+      this.emitState();
     } else {
       this.emitState();
     }
