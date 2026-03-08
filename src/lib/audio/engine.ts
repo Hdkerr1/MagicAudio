@@ -114,6 +114,7 @@ export class AudioEngine {
 
   setOnStateChange(cb: (state: EngineState) => void) { this.onStateChange = cb; }
   getAnalyser(): AnalyserNode | null { return this.analyser; }
+  getAudioBuffer(): AudioBuffer | null { return this.audioBuffer; }
   getIsPlaying(): boolean { return this.isPlaying; }
   getMode(): PlaybackMode { return this.currentMode; }
   getParams(): ModeParams { return this.params; }
