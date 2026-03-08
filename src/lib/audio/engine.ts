@@ -157,6 +157,9 @@ export class AudioEngine {
     midBoost?: BiquadFilterNode;
     lfoGain?: GainNode;
     bassWarmth?: BiquadFilterNode;
+    // Spatial / stereo nodes
+    spatialWetGain?: GainNode;
+    stereoWidthGain?: GainNode; // side channel gain for M/S
   } = {};
 
   async loadFile(file: File): Promise<void> {
