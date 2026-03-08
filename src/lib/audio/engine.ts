@@ -787,10 +787,14 @@ export class AudioEngine {
     this.liveNodes.stereoWidthGain = widener.sideGain;
     limiter.connect(widener.input);
 
+    // Depth enhancer for premium feel
+    const depth = buildDepthEnhancer(ctx);
+    widener.output.connect(depth.input);
+
     // Spatial processing
     const spatial = buildSpatialChain(ctx, p.spatial);
     this.liveNodes.spatialWetGain = spatial.wetGain;
-    widener.output.connect(spatial.input);
+    depth.output.connect(spatial.input);
 
     this.chainNodes = [inputGain, spatial.output];
   }
