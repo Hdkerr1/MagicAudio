@@ -293,17 +293,17 @@ export async function processRemix(
   preLimiterBass.type = 'lowshelf'; preLimiterBass.frequency.value = 80;
   preLimiterBass.gain.value = isBassHeavy ? -1 : 0; // Tighten if needed
 
-  // Transparent brick-wall limiter — -1dBFS ceiling
+  // Transparent limiter — ceiling only
   const limiter = offlineCtx.createDynamicsCompressor();
-  limiter.threshold.value = -1.0; // -1dBFS ceiling (industry standard)
-  limiter.knee.value = 0.0; // Brick wall
-  limiter.ratio.value = 20;
-  limiter.attack.value = 0.0002; // 0.2ms — catches all transients
-  limiter.release.value = 0.035; // 35ms — fast enough for transparency
+  limiter.threshold.value = -2.0;
+  limiter.knee.value = 3;
+  limiter.ratio.value = 10;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.05;
 
-  // Final output — leave 0.5dB headroom for codec conversion
+  // Final output — loud and proud
   const masterOutput = offlineCtx.createGain();
-  masterOutput.gain.value = 0.94;
+  masterOutput.gain.value = 1.05;
 
   // === ROUTING ===
 
