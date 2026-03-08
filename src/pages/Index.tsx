@@ -54,6 +54,7 @@ const Index = () => {
       onExport={handleExport}
       onReset={reset}
       getAnalyser={getAnalyser}
+      getAudioBuffer={getAudioBuffer}
     />
   );
 };
