@@ -461,7 +461,7 @@ export class AudioEngine {
     return this.pausedAt + (this.ctx.currentTime - this.startedAt);
   }
 
-  setMode(mode: PlaybackMode) {
+  async setMode(mode: PlaybackMode) {
     const wasPlaying = this.isPlaying;
     const time = this.getCurrentTime();
     if (wasPlaying) {
@@ -471,7 +471,7 @@ export class AudioEngine {
     this.pausedAt = time;
     this.currentMode = mode;
     
-    if (wasPlaying) this.play();
+    if (wasPlaying) await this.play();
     this.emitState();
   }
 
