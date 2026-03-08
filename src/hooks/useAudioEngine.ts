@@ -91,13 +91,14 @@ export function useAudioEngine() {
     setIsLoaded(false);
     setFileName('');
     setAnalysis(null);
+    setBypassed(false);
     setParams(JSON.parse(JSON.stringify(defaultParams)));
     setState({ isPlaying: false, currentTime: 0, duration: 0, mode: null });
   }, []);
 
   return {
-    state, params, isLoaded, fileName, isExporting, analysis,
+    state, params, isLoaded, fileName, isExporting, analysis, bypassed,
     loadFile, play, pause, togglePlay, seekTo, setMode,
-    getAnalyser, getAudioBuffer, updateParam, exportAudio, reset,
+    getAnalyser, getAudioBuffer, updateParam, exportAudio, reset, toggleBypass,
   };
 }
