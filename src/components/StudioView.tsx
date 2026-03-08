@@ -64,12 +64,21 @@ const StudioView = ({
             <span className="text-lg font-bold text-gradient-primary tracking-tight">SoundForge</span>
           </div>
         </div>
-        {currentMode && (
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${currentMode.bgClass}`}>
-            <ModeIcon className={`w-4 h-4 ${currentMode.colorClass}`} />
-            <span className={`text-sm font-semibold ${currentMode.colorClass}`}>{currentMode.label}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {bpm && (
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border/50 bg-secondary/30">
+              <span className="text-xs font-mono text-muted-foreground">♪</span>
+              <span className="text-sm font-bold font-mono text-foreground">{bpm}</span>
+              <span className="text-xs font-mono text-muted-foreground">BPM</span>
+            </div>
+          )}
+          {currentMode && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${currentMode.bgClass}`}>
+              <ModeIcon className={`w-4 h-4 ${currentMode.colorClass}`} />
+              <span className={`text-sm font-semibold ${currentMode.colorClass}`}>{currentMode.label}</span>
+            </div>
+          )}
+        </div>
       </header>
 
 
