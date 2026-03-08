@@ -42,7 +42,7 @@ const DropZone = ({ onFileSelected }: DropZoneProps) => {
         <p className="text-muted-foreground text-lg max-w-lg mx-auto leading-relaxed">
           Studio-grade audio effects in your browser.
           <br />
-          <span className="text-foreground/70">Slowed + Reverb · Hard Bass · Vintage Lo-Fi</span>
+          <span className="text-foreground/70">Slowed + Reverb · Remix · Slowed Lo-Fi</span>
         </p>
       </div>
 
