@@ -459,11 +459,19 @@ export class AudioEngine {
     const wasPlaying = this.isPlaying;
     const time = this.getCurrentTime();
     if (wasPlaying) {
-      this.stopSource();
+      this.stopSourceSmooth();
       this.isPlaying = false;
     }
     this.pausedAt = time;
-    if (wasPlaying) await this.play();
+    if (wasPlaying) {
+      // Use requestAnimationFrame to avoid blocking the UI thread
+      await new Promise<void>(resolve => {
+        requestAnimationFrame(async () => {
+          await this.play();
+          resolve();
+        });
+      });
+    }
     this.emitState();
   }
   getParams(): ModeParams { return this.params; }
@@ -513,13 +521,13 @@ export class AudioEngine {
     if (mode === 'remix' && this.currentMode === 'remix') {
       const p = this.params['remix'];
       if (key === 'bass' && this.liveNodes.bassShelf) {
-        this.liveNodes.bassShelf.gain.setTargetAtTime(Math.min(2, p.bass * 3), this.ctx!.currentTime, 0.05);
+        this.liveNodes.bassShelf.gain.setTargetAtTime(p.bass * 6, this.ctx!.currentTime, 0.05);
       }
       if (key === 'presence' && this.liveNodes.presenceBoost) {
-        this.liveNodes.presenceBoost.gain.setTargetAtTime(Math.min(2.5, p.presence * 2.5), this.ctx!.currentTime, 0.05);
+        this.liveNodes.presenceBoost.gain.setTargetAtTime(p.presence * 4, this.ctx!.currentTime, 0.05);
       }
       if (key === 'punch' && this.liveNodes.parallelCompGain) {
-        this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.2, this.ctx!.currentTime, 0.05);
+        this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.35, this.ctx!.currentTime, 0.05);
       }
       if (key === 'hall' && this.liveNodes.hallWetGain) {
         this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.20, this.ctx!.currentTime, 0.05);
@@ -770,10 +778,10 @@ export class AudioEngine {
     const subCut2 = ctx.createBiquadFilter();
     subCut2.type = 'highpass'; subCut2.frequency.value = 28; subCut2.Q.value = 0.5;
 
-    // Mud removal 250-400Hz
+    // Mud removal — gentle
     const mudCut = ctx.createBiquadFilter();
     mudCut.type = 'peaking'; mudCut.frequency.value = 300;
-    mudCut.gain.value = -2.5; mudCut.Q.value = 1.2;
+    mudCut.gain.value = -1.5; mudCut.Q.value = 1.2;
 
     // Box/honk at 550Hz
     const boxCut = ctx.createBiquadFilter();
@@ -797,14 +805,19 @@ export class AudioEngine {
     // === Gentle Additive EQ (max 2dB boosts) ===
     // Sub-bass foundation — controlled by bass slider
     const bassShelf = ctx.createBiquadFilter();
-    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 60;
-    bassShelf.gain.value = Math.min(2, p.bass * 3); // Max 2dB (was 8dB!)
+    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
+    bassShelf.gain.value = p.bass * 6; // Up to 6dB for real punch
     this.liveNodes.bassShelf = bassShelf;
+
+    // Kick punch at 100Hz
+    const kickPunch = ctx.createBiquadFilter();
+    kickPunch.type = 'peaking'; kickPunch.frequency.value = 100;
+    kickPunch.gain.value = p.bass * 3; kickPunch.Q.value = 1.2;
 
     // Presence — controlled by presence slider
     const presenceBoost = ctx.createBiquadFilter();
     presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 2500;
-    presenceBoost.gain.value = Math.min(2.5, p.presence * 2.5); // Max 2.5dB
+    presenceBoost.gain.value = p.presence * 4; // Up to 4dB
     presenceBoost.Q.value = 1.5;
     this.liveNodes.presenceBoost = presenceBoost;
 
@@ -813,24 +826,24 @@ export class AudioEngine {
     airLift.type = 'highshelf'; airLift.frequency.value = 12000;
     airLift.gain.value = 1;
 
-    // === Glue Compression ===
+    // === Glue Compression — lighter touch ===
     const glueComp = ctx.createDynamicsCompressor();
-    glueComp.threshold.value = -14; glueComp.knee.value = 12;
-    glueComp.ratio.value = 1.8; glueComp.attack.value = 0.012;
-    glueComp.release.value = 0.20;
+    glueComp.threshold.value = -10; glueComp.knee.value = 15;
+    glueComp.ratio.value = 1.5; glueComp.attack.value = 0.015;
+    glueComp.release.value = 0.25;
 
     // Parallel compression — controlled by punch slider
     const parallelComp = ctx.createDynamicsCompressor();
-    parallelComp.threshold.value = -30; parallelComp.knee.value = 6;
-    parallelComp.ratio.value = 5; parallelComp.attack.value = 0.005;
-    parallelComp.release.value = 0.15;
+    parallelComp.threshold.value = -24; parallelComp.knee.value = 8;
+    parallelComp.ratio.value = 3.5; parallelComp.attack.value = 0.008;
+    parallelComp.release.value = 0.18;
 
     const parallelCompGain = ctx.createGain();
-    parallelCompGain.gain.value = p.punch * 0.2; // Much more subtle
+    parallelCompGain.gain.value = p.punch * 0.35;
     this.liveNodes.parallelCompGain = parallelCompGain;
 
     const dryGain = ctx.createGain();
-    dryGain.gain.value = 0.88;
+    dryGain.gain.value = 0.92;
 
     const compMixBus = ctx.createGain();
     compMixBus.gain.value = 1.0;
@@ -861,14 +874,14 @@ export class AudioEngine {
     consoleSat.curve = createSaturationCurve(0.06) as Float32Array<ArrayBuffer>;
     consoleSat.oversample = '4x';
 
-    // === Transparent Limiter ===
+    // === Transparent Limiter — ceiling only, no squashing ===
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -1.0; limiter.knee.value = 0;
-    limiter.ratio.value = 20; limiter.attack.value = 0.0002;
-    limiter.release.value = 0.035;
+    limiter.threshold.value = -2.0; limiter.knee.value = 3;
+    limiter.ratio.value = 10; limiter.attack.value = 0.001;
+    limiter.release.value = 0.05;
 
     const masterOutput = ctx.createGain();
-    masterOutput.gain.value = 0.94;
+    masterOutput.gain.value = 1.05; // Slightly hot — let limiter catch peaks
 
     // === Routing ===
     // Source → Subtractive EQ
@@ -882,7 +895,8 @@ export class AudioEngine {
 
     // → Additive EQ
     ultraCut.connect(bassShelf);
-    bassShelf.connect(presenceBoost);
+    bassShelf.connect(kickPunch);
+    kickPunch.connect(presenceBoost);
     presenceBoost.connect(airLift);
 
     // → Compression (parallel)

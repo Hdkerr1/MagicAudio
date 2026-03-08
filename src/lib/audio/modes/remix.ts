@@ -110,7 +110,7 @@ export async function processRemix(
   const brightness = analysis?.brightness ?? 0.3;
   const energy = analysis?.energy ?? 0.5;
 
-  // Adaptive parameters — all subtle, professional ranges
+  // Adaptive parameters
   const isBassHeavy = bassRatio > 0.35;
   const isDull = brightness < 0.12;
   const isBright = brightness > 0.25;
@@ -119,7 +119,7 @@ export async function processRemix(
   // Reverb: plate with musical timing
   const beatSec = 60 / bpm;
   const reverbDecay = Math.min(3.5, Math.max(1.5, beatSec * (bpm > 130 ? 3 : 4.5)));
-  const reverbWet = bpm > 140 ? 0.08 : bpm < 90 ? 0.14 : 0.10; // VERY subtle
+  const reverbWet = bpm > 140 ? 0.10 : bpm < 90 ? 0.18 : 0.14; // Slightly more present
 
   // Extend buffer for reverb tail
   const tailSamples = Math.ceil(buffer.sampleRate * reverbDecay);
@@ -156,7 +156,7 @@ export async function processRemix(
   // 2b. Mud removal at 250-400Hz — THE most common problem in all music
   const mudCut = offlineCtx.createBiquadFilter();
   mudCut.type = 'peaking'; mudCut.frequency.value = 300;
-  mudCut.gain.value = isBassHeavy ? -3 : -2; // More cut on bass-heavy tracks
+  mudCut.gain.value = isBassHeavy ? -2 : -1; // Gentler
   mudCut.Q.value = 1.2;
 
   // 2c. Box/honk removal at 500-700Hz
@@ -190,51 +190,51 @@ export async function processRemix(
   // === STAGE 3: Gentle Additive EQ (tonal sweetening — MAX 2dB) ===
   onProgress({ stage: 'Tonal sweetening...', percent: 30 });
 
-  // 3a. Sub-bass foundation — only on tracks that need it
+  // 3a. Sub-bass foundation
   const subWarmth = offlineCtx.createBiquadFilter();
-  subWarmth.type = 'lowshelf'; subWarmth.frequency.value = 60;
-  subWarmth.gain.value = isBassHeavy ? 0 : 1.5; // NO boost on already bassy tracks
+  subWarmth.type = 'lowshelf'; subWarmth.frequency.value = 80;
+  subWarmth.gain.value = isBassHeavy ? 1 : 4; // Real bass boost
 
-  // 3b. Kick/bass body — gentle
+  // 3b. Kick/bass body
   const kickBody = offlineCtx.createBiquadFilter();
-  kickBody.type = 'peaking'; kickBody.frequency.value = 80;
-  kickBody.gain.value = isBassHeavy ? 0 : 1; kickBody.Q.value = 1.5;
+  kickBody.type = 'peaking'; kickBody.frequency.value = 100;
+  kickBody.gain.value = isBassHeavy ? 1 : 3; kickBody.Q.value = 1.2;
 
-  // 3c. Vocal/instrument presence — the "money" frequency
+  // 3c. Vocal/instrument presence
   const presenceLift = offlineCtx.createBiquadFilter();
   presenceLift.type = 'peaking'; presenceLift.frequency.value = 2500;
-  presenceLift.gain.value = isDull ? 2 : 1; presenceLift.Q.value = 1.5;
+  presenceLift.gain.value = isDull ? 3.5 : 2; presenceLift.Q.value = 1.5;
 
-  // 3d. Air/sparkle — very gentle high shelf
+  // 3d. Air/sparkle
   const airLift = offlineCtx.createBiquadFilter();
   airLift.type = 'highshelf'; airLift.frequency.value = 12000;
-  airLift.gain.value = isDull ? 1.5 : 0.5; // More air on dull tracks
+  airLift.gain.value = isDull ? 2 : 1;
 
   // === Gain staging: compensate for all the EQ cuts ===
   const eqMakeup = offlineCtx.createGain();
-  eqMakeup.gain.value = 1.08; // ~0.7dB makeup for subtractive EQ
+  eqMakeup.gain.value = 1.12;
 
   // === STAGE 4: Glue Compression (cohesion — gentle, 2-3dB GR) ===
   onProgress({ stage: 'Applying studio compression...', percent: 40 });
 
   const glueComp = offlineCtx.createDynamicsCompressor();
-  glueComp.threshold.value = -14; // Catch only peaks
-  glueComp.knee.value = 12; // Very soft knee for transparency
-  glueComp.ratio.value = 1.8; // Gentle — professional mastering ratio
-  glueComp.attack.value = 0.012; // Let transients through (punch)
-  glueComp.release.value = 0.20; // Musical release
+  glueComp.threshold.value = -10; // Less aggressive
+  glueComp.knee.value = 15;
+  glueComp.ratio.value = 1.5;
+  glueComp.attack.value = 0.015;
+  glueComp.release.value = 0.25;
 
-  // Parallel compression (NY-style) — adds density without killing dynamics
+  // Parallel compression — adds density
   const parallelComp = offlineCtx.createDynamicsCompressor();
-  parallelComp.threshold.value = -30; parallelComp.knee.value = 6;
-  parallelComp.ratio.value = 5; parallelComp.attack.value = 0.005;
-  parallelComp.release.value = 0.15;
+  parallelComp.threshold.value = -24; parallelComp.knee.value = 8;
+  parallelComp.ratio.value = 3.5; parallelComp.attack.value = 0.008;
+  parallelComp.release.value = 0.18;
 
   const parallelGain = offlineCtx.createGain();
-  parallelGain.gain.value = 0.15; // Very low blend — just adds density
+  parallelGain.gain.value = 0.25; // More blend for punch
 
   const dryGain = offlineCtx.createGain();
-  dryGain.gain.value = 0.85;
+  dryGain.gain.value = 0.80;
 
   const compMixBus = offlineCtx.createGain();
   compMixBus.gain.value = 1.0;
@@ -293,17 +293,17 @@ export async function processRemix(
   preLimiterBass.type = 'lowshelf'; preLimiterBass.frequency.value = 80;
   preLimiterBass.gain.value = isBassHeavy ? -1 : 0; // Tighten if needed
 
-  // Transparent brick-wall limiter — -1dBFS ceiling
+  // Transparent limiter — ceiling only
   const limiter = offlineCtx.createDynamicsCompressor();
-  limiter.threshold.value = -1.0; // -1dBFS ceiling (industry standard)
-  limiter.knee.value = 0.0; // Brick wall
-  limiter.ratio.value = 20;
-  limiter.attack.value = 0.0002; // 0.2ms — catches all transients
-  limiter.release.value = 0.035; // 35ms — fast enough for transparency
+  limiter.threshold.value = -2.0;
+  limiter.knee.value = 3;
+  limiter.ratio.value = 10;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.05;
 
-  // Final output — leave 0.5dB headroom for codec conversion
+  // Final output — loud and proud
   const masterOutput = offlineCtx.createGain();
-  masterOutput.gain.value = 0.94;
+  masterOutput.gain.value = 1.05;
 
   // === ROUTING ===
 
