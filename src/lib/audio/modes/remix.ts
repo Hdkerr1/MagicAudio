@@ -234,7 +234,7 @@ export async function processRemix(
   parallelGain.gain.value = 0.25; // More blend for punch
 
   const dryGain = offlineCtx.createGain();
-  dryGain.gain.value = 0.85;
+  dryGain.gain.value = 0.80;
 
   const compMixBus = offlineCtx.createGain();
   compMixBus.gain.value = 1.0;
