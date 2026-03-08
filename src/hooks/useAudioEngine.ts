@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { AudioEngine, type PlaybackMode, type EngineState, type ModeParams, defaultParams } from '@/lib/audio/engine';
+import { analyzeAudio, autoTuneParams, type AudioAnalysis } from '@/lib/audio/analyze';
 
 export function useAudioEngine() {
   const engineRef = useRef<AudioEngine | null>(null);
@@ -10,6 +11,7 @@ export function useAudioEngine() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [fileName, setFileName] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [analysis, setAnalysis] = useState<AudioAnalysis | null>(null);
 
   useEffect(() => {
     const engine = new AudioEngine();
@@ -23,6 +25,24 @@ export function useAudioEngine() {
     setFileName(file.name);
     await engineRef.current.loadFile(file);
     setIsLoaded(true);
+
+    // Analyze audio for auto-tuning parameters
+    const buffer = engineRef.current.getAudioBuffer();
+    if (buffer) {
+      const result = analyzeAudio(buffer);
+      setAnalysis(result);
+      const autoParams = autoTuneParams(result);
+      setParams(autoParams);
+      // Push auto params into the engine for each mode
+      const engine = engineRef.current;
+      const modes = ['slowed-reverb', 'remix', 'lofi'] as const;
+      for (const m of modes) {
+        const mp = autoParams[m] as Record<string, number>;
+        for (const [k, v] of Object.entries(mp)) {
+          engine.updateParam(m, k as never, v);
+        }
+      }
+    }
   }, []);
 
   const play = useCallback(() => engineRef.current?.play(), []);
@@ -61,12 +81,13 @@ export function useAudioEngine() {
     }
     setIsLoaded(false);
     setFileName('');
+    setAnalysis(null);
     setParams(JSON.parse(JSON.stringify(defaultParams)));
     setState({ isPlaying: false, currentTime: 0, duration: 0, mode: null });
   }, []);
 
   return {
-    state, params, isLoaded, fileName, isExporting,
+    state, params, isLoaded, fileName, isExporting, analysis,
     loadFile, play, pause, togglePlay, seekTo, setMode,
     getAnalyser, getAudioBuffer, updateParam, exportAudio, reset,
   };
