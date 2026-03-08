@@ -105,6 +105,6 @@ export function useAudioEngine() {
   return {
     state, params, isLoaded, fileName, isExporting, analysis, bypassed,
     loadFile, play, pause, togglePlay, seekTo, setMode,
-    getAnalyser, getAudioBuffer, updateParam, exportAudio, reset, toggleBypass,
+    getAnalyser, getAudioBuffer, updateParam, exportAudio, reset, toggleBypass, setBypassValue,
   };
 }

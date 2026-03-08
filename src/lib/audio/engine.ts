@@ -454,23 +454,46 @@ export class AudioEngine {
   async setBypass(bypassed: boolean) {
     if (this._bypassed === bypassed) return;
     this._bypassed = bypassed;
-    // Force chain rebuild
-    this.chainMode = '__force_rebuild__' as any;
-    const wasPlaying = this.isPlaying;
-    const time = this.getCurrentTime();
-    if (wasPlaying) {
+
+    if (!this.ctx || !this.isPlaying || !this.sourceNode) {
+      // Not playing — just mark for next play
+      this.chainMode = '__force_rebuild__' as any;
+      this.emitState();
+      return;
+    }
+
+    const t = this.ctx.currentTime;
+    const fadeDur = 0.035; // 35ms crossfade — fast but click-free
+
+    if (bypassed) {
+      // Fade out processed chain, connect source directly to analyser
+      if (this.gainNode) {
+        this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, t);
+        this.gainNode.gain.linearRampToValueAtTime(0, t + fadeDur);
+      }
+      // Create a bypass gain and connect source → analyser → destination
+      setTimeout(() => {
+        if (!this.ctx || !this.sourceNode || !this.analyser) return;
+        const bypassGain = this.ctx.createGain();
+        bypassGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        bypassGain.gain.linearRampToValueAtTime(0.9, this.ctx.currentTime + fadeDur);
+        try { this.sourceNode.connect(this.analyser); } catch {}
+        this.analyser.connect(bypassGain);
+        bypassGain.connect(this.ctx.destination);
+        this.chainNodes.push(bypassGain);
+        // Reset playback rate to 1x for original
+        this.sourceNode.playbackRate.setValueAtTime(1, this.ctx.currentTime);
+      }, fadeDur * 1000);
+    } else {
+      // Switching back to processed — need full rebuild
+      const time = this.getCurrentTime();
+      this.chainMode = '__force_rebuild__' as any;
       this.stopSourceSmooth();
       this.isPlaying = false;
-    }
-    this.pausedAt = time;
-    if (wasPlaying) {
-      // Use requestAnimationFrame to avoid blocking the UI thread
-      await new Promise<void>(resolve => {
-        requestAnimationFrame(async () => {
-          await this.play();
-          resolve();
-        });
-      });
+      this.pausedAt = time;
+      // Small delay then restart
+      await new Promise<void>(r => setTimeout(r, 40));
+      await this.play();
     }
     this.emitState();
   }
