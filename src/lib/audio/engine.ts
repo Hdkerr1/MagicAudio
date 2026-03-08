@@ -194,6 +194,8 @@ function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainN
 }
 
 
+/**
+ * Build an immersive spatial / Dolby Atmos-like processing chain.
  * Uses cross-feed delays, HRTF-like filtering, and micro-reverb for 3D soundstage.
  * Returns { input, output } nodes to splice into the main chain.
  */
