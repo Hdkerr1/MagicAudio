@@ -712,7 +712,17 @@ export class AudioEngine {
     masterComp.connect(consoleSat);
     consoleSat.connect(limiter);
 
-    this.chainNodes = [inputGain, limiter];
+    // Stereo widening
+    const widener = buildStereoWidener(ctx, p.stereoWidth);
+    this.liveNodes.stereoWidthGain = widener.sideGain;
+    limiter.connect(widener.input);
+
+    // Spatial processing
+    const spatial = buildSpatialChain(ctx, p.spatial);
+    this.liveNodes.spatialWetGain = spatial.wetGain;
+    widener.output.connect(spatial.input);
+
+    this.chainNodes = [inputGain, spatial.output];
   }
 
   /**
