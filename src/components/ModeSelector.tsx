@@ -125,8 +125,53 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
         })}
       </div>
 
+      {/* Try Demo Section */}
+      {isLanding && onDemoSelect && (
+        <div className="relative z-10 mt-10 flex flex-col items-center">
+          {!showDemos ? (
+            <button
+              onClick={() => setShowDemos(true)}
+              className="flex items-center gap-2.5 px-6 py-3 rounded-full glass hover:glass-strong transition-all duration-300 hover:scale-105 active:scale-95 group"
+            >
+              <Headphones className="w-4.5 h-4.5 text-primary group-hover:text-accent transition-colors" />
+              <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Try a Demo Track
+              </span>
+            </button>
+          ) : (
+            <div className="w-full max-w-md space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <p className="text-xs text-muted-foreground text-center mb-3 font-mono">Pick a demo track to try</p>
+              {demoTracks.map((track) => (
+                <button
+                  key={track.id}
+                  onClick={() => onDemoSelect(track.file, `${track.artist} - ${track.name}`)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl glass hover:glass-strong hover:border-primary/30 transition-all duration-200 group text-left active:scale-[0.98]"
+                >
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Music className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{track.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                  </div>
+                  <svg className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowDemos(false)}
+                className="w-full text-xs text-muted-foreground/50 hover:text-muted-foreground py-1 transition-colors"
+              >
+                Hide demos
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer */}
-      <p className="relative z-10 mt-12 text-xs text-muted-foreground/40 font-mono">
+      <p className="relative z-10 mt-8 text-xs text-muted-foreground/40 font-mono">
         Studio-grade processing · Real-time preview · No uploads to server
       </p>
     </div>
