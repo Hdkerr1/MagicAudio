@@ -116,10 +116,10 @@ const Index = () => {
       isExporting={isExporting}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
-      onModeChange={setMode}
       onParamChange={updateParam}
       onExport={handleExport}
       onReset={handleReset}
+      onBackToModes={handleBackToModesFromStudio}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />
