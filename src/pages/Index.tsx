@@ -111,12 +111,14 @@ const Index = () => {
       fileName={fileName}
       isExporting={isExporting}
       bpm={analysis?.bpm ?? null}
+      bypassed={bypassed}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
       onParamChange={updateParam}
       onExport={handleExport}
       onReset={handleReset}
       onBackToModes={handleBackToModesFromStudio}
+      onToggleBypass={toggleBypass}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />
