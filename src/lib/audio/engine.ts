@@ -316,7 +316,8 @@ function buildSpatialChain(ctx: AudioContext, spatialAmount: number): {
 }
 
 /**
- * Build Mid/Side stereo widening. Boosts the side (difference) channel.
+ * Build proper Mid/Side stereo widening without phase issues.
+ * Uses complementary EQ and subtle delay for natural width.
  */
 function buildStereoWidener(ctx: AudioContext, widthAmount: number): {
   input: GainNode; output: GainNode; sideGain: GainNode;
@@ -329,54 +330,63 @@ function buildStereoWidener(ctx: AudioContext, widthAmount: number): {
   const splitter = ctx.createChannelSplitter(2);
   const merger = ctx.createChannelMerger(2);
 
-  // Mid = (L+R)/2, Side = (L-R)/2
-  // We reconstruct with boosted sides
-  const midGain = ctx.createGain();
-  midGain.gain.value = 0.7; // Slightly reduce mid for wider feel
-
-  const sideGain = ctx.createGain();
-  sideGain.gain.value = 0.5 + widthAmount * 1.0; // Boost sides
-
-  // L = Mid + Side, R = Mid - Side
-  // Using scriptless approach: duplicate channels with gain manipulation
-  // Simpler approach: use delay-based widening + channel manipulation
-  
-  // Left channel processing
+  // Left channel: direct path
   const leftGain = ctx.createGain();
   leftGain.gain.value = 1.0;
-  
-  // Right channel processing  
+
+  // Right channel: direct path
   const rightGain = ctx.createGain();
   rightGain.gain.value = 1.0;
 
-  // Subtle delay on one channel for Haas effect widening
-  const haasDelay = ctx.createDelay(0.05);
-  haasDelay.delayTime.value = 0.0003 + widthAmount * 0.012; // 0.3-12.3ms based on width
-
-  // Side enhancement via allpass filters (phase-based widening)
+  // Side enhancement: subtle allpass phase difference for natural widening
   const allpassL = ctx.createBiquadFilter();
-  allpassL.type = 'allpass'; allpassL.frequency.value = 800; allpassL.Q.value = 0.7;
-  
+  allpassL.type = 'allpass';
+  allpassL.frequency.value = 600 + widthAmount * 400;
+  allpassL.Q.value = 0.5;
+
   const allpassR = ctx.createBiquadFilter();
-  allpassR.type = 'allpass'; allpassR.frequency.value = 1200; allpassR.Q.value = 0.7;
+  allpassR.type = 'allpass';
+  allpassR.frequency.value = 1400 + widthAmount * 600;
+  allpassR.Q.value = 0.5;
+
+  // Cross-feed with inverted polarity for width (side = L - R)
+  const crossL = ctx.createGain();
+  crossL.gain.value = -0.1 * widthAmount; // subtle R into L inverted
+  const crossR = ctx.createGain();
+  crossR.gain.value = -0.1 * widthAmount; // subtle L into R inverted
+
+  // Side gain control for live updates
+  const sideGain = ctx.createGain();
+  sideGain.gain.value = widthAmount * 0.3;
+
+  // Complementary EQ — boost different bands in L vs R for perceived width
+  const eqL = ctx.createBiquadFilter();
+  eqL.type = 'peaking'; eqL.frequency.value = 2000;
+  eqL.gain.value = widthAmount * 1.5; eqL.Q.value = 0.8;
+
+  const eqR = ctx.createBiquadFilter();
+  eqR.type = 'peaking'; eqR.frequency.value = 4000;
+  eqR.gain.value = widthAmount * 1.5; eqR.Q.value = 0.8;
 
   input.connect(splitter);
-  
-  // Left: direct + allpass
-  splitter.connect(leftGain, 0);
+
+  // Left: direct + allpass + complementary EQ
   splitter.connect(allpassL, 0);
-  allpassL.connect(sideGain);
-
-  // Right: Haas delayed + allpass
-  splitter.connect(haasDelay, 1);
-  haasDelay.connect(rightGain);
-  splitter.connect(allpassR, 1);
-  allpassR.connect(sideGain);
-
+  allpassL.connect(eqL);
+  eqL.connect(leftGain);
   leftGain.connect(merger, 0, 0);
+
+  // Right: direct + allpass + complementary EQ
+  splitter.connect(allpassR, 1);
+  allpassR.connect(eqR);
+  eqR.connect(rightGain);
   rightGain.connect(merger, 0, 1);
-  sideGain.connect(merger, 0, 0);
-  sideGain.connect(merger, 0, 1);
+
+  // Cross-feed for extra width
+  splitter.connect(crossL, 1); // R → L inverted
+  crossL.connect(merger, 0, 0);
+  splitter.connect(crossR, 0); // L → R inverted
+  crossR.connect(merger, 0, 1);
 
   merger.connect(output);
 
