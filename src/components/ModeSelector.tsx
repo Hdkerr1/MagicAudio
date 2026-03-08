@@ -14,10 +14,10 @@ const modes = [
     subtitle: 'Dreamy Reverb Engine',
     description: 'Slow down the track with lush algorithmic reverb, creating a dreamy, atmospheric vibe.',
     icon: Waves,
-    glowClass: 'glow-primary',
     borderClass: 'hover:border-primary/50',
     iconColor: 'text-primary',
     bgAccent: 'bg-primary/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.15)]',
   },
   {
     id: 'remix' as ProcessingMode,
@@ -25,10 +25,10 @@ const modes = [
     subtitle: 'Premium Remix Engine',
     description: 'Hall echo, punchy bass, crisp presence, and professional mastering quality.',
     icon: Volume2,
-    glowClass: 'glow-accent',
     borderClass: 'hover:border-accent/50',
     iconColor: 'text-accent',
     bgAccent: 'bg-accent/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.15)]',
   },
   {
     id: 'lofi' as ProcessingMode,
@@ -36,10 +36,10 @@ const modes = [
     subtitle: 'Vintage Tape Engine',
     description: 'Slowed down with warm vinyl texture, gentle tape wobble, and nostalgic lo-fi character.',
     icon: Radio,
-    glowClass: 'glow-warm',
     borderClass: 'hover:border-glow-warm/50',
     iconColor: 'text-glow-warm',
     bgAccent: 'bg-glow-warm/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(30_100%_55%/0.15)]',
   },
 ] as const;
 
@@ -55,9 +55,9 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
       </div>
 
       {/* Header / branding */}
-      <div className="relative z-10 text-center mb-10">
+      <div className="relative z-10 text-center mb-12">
         {isLanding && (
-          <div className="flex items-center justify-center gap-3 mb-5">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <div className="p-2.5 rounded-xl glass glow-primary">
               <Music className="w-7 h-7 text-primary" />
             </div>
@@ -66,12 +66,12 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
             </h1>
           </div>
         )}
-        <h2 className={`${isLanding ? 'text-xl' : 'text-3xl'} font-bold text-foreground mb-2`}>
-          {isLanding ? 'Choose how you want to convert your song' : 'Choose Your Style'}
+        <h2 className={`${isLanding ? 'text-lg md:text-xl' : 'text-3xl'} font-semibold text-foreground mb-2`}>
+          {isLanding ? 'Choose how you want to transform your music' : 'Choose Your Style'}
         </h2>
         {isLanding && (
-          <p className="text-muted-foreground text-base max-w-lg mx-auto">
-            Select an effect first, then upload your track
+          <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
+            Select an effect, then upload your track
           </p>
         )}
         {!isLanding && (
@@ -81,7 +81,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
         )}
       </div>
 
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
         {modes.map((mode) => {
           const Icon = mode.icon;
           return (
@@ -89,12 +89,12 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
               key={mode.id}
               onClick={() => onModeSelect(mode.id)}
               className={`
-                group relative p-6 rounded-2xl border border-border bg-gradient-card
+                group relative p-6 rounded-2xl border border-border/60 glass
                 transition-all duration-300 text-left
-                hover:scale-[1.03] ${mode.borderClass}
+                hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
               `}
             >
-              <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit mb-4`}>
+              <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit mb-4 transition-transform duration-300 group-hover:scale-110`}>
                 <Icon className={`w-6 h-6 ${mode.iconColor}`} />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-1">
@@ -106,10 +106,21 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {mode.description}
               </p>
+              {/* Hover arrow indicator */}
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </div>
             </button>
           );
         })}
       </div>
+
+      {/* Footer */}
+      <p className="relative z-10 mt-12 text-xs text-muted-foreground/40 font-mono">
+        Studio-grade processing · Real-time preview · No uploads to server
+      </p>
     </div>
   );
 };

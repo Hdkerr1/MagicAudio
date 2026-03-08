@@ -64,6 +64,31 @@
     @apply bg-background text-foreground antialiased;
     overflow-x: hidden;
   }
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Better focus styles */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(240 8% 20%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(240 8% 28%);
+  }
 }
 
 @layer utilities {
@@ -126,4 +151,10 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* Selection styling */
+::selection {
+  background: hsl(270 95% 60% / 0.3);
+  color: hsl(0 0% 100%);
 }
