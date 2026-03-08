@@ -7,13 +7,13 @@ export type PlaybackMode = 'slowed-reverb' | 'remix' | 'lofi' | null;
 
 export interface ModeParams {
   'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number };
-  'remix': { bass: number; presence: number; punch: number };
+  'remix': { bass: number; presence: number; punch: number; hall: number };
   'lofi': { warmth: number; crackle: number; wobble: number; speed: number };
 }
 
 export const defaultParams: ModeParams = {
   'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4 },
-  'remix': { bass: 0.5, presence: 0.5, punch: 0.5 },
+  'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4 },
   'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88 },
 };
 
@@ -49,6 +49,60 @@ function generateReverbIR(sampleRate: number, duration: number): AudioBuffer {
       const decay = 0.6 * Math.exp(-t * decayRate * 1.8) + 0.4 * Math.exp(-t * decayRate * 0.7);
       const hfDamp = Math.exp(-t * 1.5);
       data[i] += (rand() * hfDamp + rand() * (1 - hfDamp) * 0.3) * decay * 0.16;
+    }
+  }
+  return ir;
+}
+
+/**
+ * Generate a large concert hall impulse response — spacious, warm, with distinct echoes.
+ * Longer pre-delay + dense early reflections + smooth tail for that "hall" sound.
+ */
+function generateHallIR(sampleRate: number): AudioBuffer {
+  const duration = 3.5; // Long hall tail
+  const length = Math.ceil(sampleRate * duration);
+  const ctx = new OfflineAudioContext(2, length, sampleRate);
+  const ir = ctx.createBuffer(2, length, sampleRate);
+
+  // Hall early reflections — more spread out than room reverb, with pre-delay
+  const earlyTaps = [
+    { time: 0.025, gain: 0.6 },  { time: 0.038, gain: 0.5 },
+    { time: 0.055, gain: 0.45 }, { time: 0.072, gain: 0.38 },
+    { time: 0.095, gain: 0.32 }, { time: 0.120, gain: 0.26 },
+    { time: 0.155, gain: 0.2 },  { time: 0.195, gain: 0.16 },
+    { time: 0.240, gain: 0.12 }, { time: 0.300, gain: 0.08 },
+    { time: 0.370, gain: 0.05 },
+  ];
+
+  for (let ch = 0; ch < 2; ch++) {
+    const data = ir.getChannelData(ch);
+    let seed = ch === 0 ? 54321 : 98765;
+    const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed / 0x7fffffff) * 2 - 1; };
+
+    // Early reflections with stereo spread
+    for (const tap of earlyTaps) {
+      const stereoOffset = ch * Math.floor(0.006 * sampleRate); // wider stereo than room
+      const idx = Math.floor(tap.time * sampleRate) + stereoOffset;
+      if (idx < length) {
+        data[idx] += tap.gain * (0.8 + rand() * 0.2);
+        // Add a secondary reflection for density
+        const idx2 = idx + Math.floor(0.004 * sampleRate * (1 + rand() * 0.3));
+        if (idx2 < length) data[idx2] += tap.gain * 0.3 * (0.8 + rand() * 0.2);
+      }
+    }
+
+    // Dense diffuse tail — dual-decay (warm body + airy tail)
+    const startSample = Math.floor(0.08 * sampleRate);
+    for (let i = startSample; i < length; i++) {
+      const t = i / sampleRate;
+      // Dual decay: fast warm body + slow airy tail
+      const bodyDecay = 0.55 * Math.exp(-t * 1.8);
+      const tailDecay = 0.35 * Math.exp(-t * 0.8);
+      const decay = bodyDecay + tailDecay;
+      // HF damping for warmth (hall absorbs highs over distance)
+      const hfDamp = 0.6 * Math.exp(-t * 2.0) + 0.4 * Math.exp(-t * 0.5);
+      const sample = rand() * hfDamp + rand() * (1 - hfDamp) * 0.2;
+      data[i] += sample * decay * 0.14;
     }
   }
   return ir;
@@ -98,6 +152,7 @@ export class AudioEngine {
     bassShelf?: BiquadFilterNode;
     presenceBoost?: BiquadFilterNode;
     parallelCompGain?: GainNode;
+    hallWetGain?: GainNode;
     noiseGain?: GainNode;
     midBoost?: BiquadFilterNode;
     lfoGain?: GainNode;
@@ -166,6 +221,9 @@ export class AudioEngine {
       }
       if (key === 'punch' && this.liveNodes.parallelCompGain) {
         this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.5, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'hall' && this.liveNodes.hallWetGain) {
+        this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.45, this.ctx!.currentTime, 0.05);
       }
     }
 
@@ -320,8 +378,7 @@ export class AudioEngine {
   }
 
   /**
-   * Remix — clean, wide, punchy, radio-ready sound.
-   * Musical EQ + parallel compression + transparent mastering.
+   * Remix — hall reverb echo + punchy bass + instrument enhancement.
    */
   private buildRemixChain() {
     const ctx = this.ctx!;
@@ -340,12 +397,17 @@ export class AudioEngine {
     bassShelf.gain.value = p.bass * 6;
     this.liveNodes.bassShelf = bassShelf;
 
+    // Body/instrument enhancement around 200Hz
+    const bodyBoost = ctx.createBiquadFilter();
+    bodyBoost.type = 'peaking'; bodyBoost.frequency.value = 200;
+    bodyBoost.gain.value = 2; bodyBoost.Q.value = 1.0;
+
     // Clean up muddy region
     const mudCut = ctx.createBiquadFilter();
     mudCut.type = 'peaking'; mudCut.frequency.value = 400;
     mudCut.gain.value = -1.5; mudCut.Q.value = 1.2;
 
-    // Presence
+    // Instrument/vocal presence
     const presenceBoost = ctx.createBiquadFilter();
     presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 3000;
     presenceBoost.gain.value = p.presence * 4; presenceBoost.Q.value = 1.0;
@@ -356,9 +418,25 @@ export class AudioEngine {
     airShelf.type = 'highshelf'; airShelf.frequency.value = 10000;
     airShelf.gain.value = 2;
 
+    // === Hall Reverb (convolver) ===
+    const hallConvolver = ctx.createConvolver();
+    hallConvolver.buffer = generateHallIR(ctx.sampleRate);
+
+    // Pre-filter: cut lows from reverb send to keep bass clean
+    const hallPreHP = ctx.createBiquadFilter();
+    hallPreHP.type = 'highpass'; hallPreHP.frequency.value = 300; hallPreHP.Q.value = 0.5;
+
+    // Post-filter: darken reverb tail for warmth
+    const hallPostLP = ctx.createBiquadFilter();
+    hallPostLP.type = 'lowpass'; hallPostLP.frequency.value = 8000; hallPostLP.Q.value = 0.5;
+
+    const hallWetGain = ctx.createGain();
+    hallWetGain.gain.value = p.hall * 0.45;
+    this.liveNodes.hallWetGain = hallWetGain;
+
     // Dry path
     const dryGain = ctx.createGain();
-    dryGain.gain.value = 0.7;
+    dryGain.gain.value = 0.75;
 
     // Parallel compression for punch
     const parallelComp = ctx.createDynamicsCompressor();
@@ -379,7 +457,7 @@ export class AudioEngine {
     masterComp.ratio.value = 2.5; masterComp.attack.value = 0.01;
     masterComp.release.value = 0.2;
 
-    // Very gentle console saturation
+    // Gentle console saturation
     const consoleSat = ctx.createWaveShaper();
     consoleSat.curve = createSaturationCurve(0.12) as Float32Array<ArrayBuffer>;
     consoleSat.oversample = '4x';
@@ -390,21 +468,32 @@ export class AudioEngine {
     limiter.ratio.value = 20; limiter.attack.value = 0.0005;
     limiter.release.value = 0.05;
 
+    // === Routing ===
     // EQ chain
     inputGain.connect(subCut);
     subCut.connect(bassShelf);
-    bassShelf.connect(mudCut);
+    bassShelf.connect(bodyBoost);
+    bodyBoost.connect(mudCut);
     mudCut.connect(presenceBoost);
     presenceBoost.connect(airShelf);
 
-    // Parallel compression split
+    // Dry path → mix
     airShelf.connect(dryGain);
     dryGain.connect(mixBus);
+
+    // Hall reverb send → mix
+    airShelf.connect(hallPreHP);
+    hallPreHP.connect(hallConvolver);
+    hallConvolver.connect(hallPostLP);
+    hallPostLP.connect(hallWetGain);
+    hallWetGain.connect(mixBus);
+
+    // Parallel compression → mix
     airShelf.connect(parallelComp);
     parallelComp.connect(parallelCompGain);
     parallelCompGain.connect(mixBus);
 
-    // Master
+    // Master chain
     mixBus.connect(masterComp);
     masterComp.connect(consoleSat);
     consoleSat.connect(limiter);
