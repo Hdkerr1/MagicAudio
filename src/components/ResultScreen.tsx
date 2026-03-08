@@ -64,7 +64,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4">
       <audio
         ref={audioRef}
-        src={audioUrl.current}
+        src={audioUrl}
         onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
         onEnded={() => setIsPlaying(false)}
