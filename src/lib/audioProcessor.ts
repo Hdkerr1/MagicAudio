@@ -3,7 +3,7 @@ export type { ProcessingMode, ProcessingProgress } from './audio/types';
 
 import type { ProcessingMode, ProgressCallback } from './audio/types';
 import { decodeAudioFile } from './audio/decode';
-import { audioBufferToWav } from './audio/encode';
+import { audioBufferToMp3 } from './audio/encode';
 import { processSlowedReverb } from './audio/modes/slowed-reverb';
 import { processRemix } from './audio/modes/remix';
 import { processLoFi } from './audio/modes/lofi';
@@ -30,6 +30,6 @@ export async function processAudio(
       break;
   }
 
-  onProgress({ stage: 'Encoding WAV...', percent: 95 });
-  return audioBufferToWav(processedBuffer);
+  onProgress({ stage: 'Encoding MP3...', percent: 95 });
+  return audioBufferToMp3(processedBuffer);
 }
