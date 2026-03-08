@@ -1,4 +1,3 @@
-import { useRef, useCallback } from 'react';
 import { Play, Pause, Download, RotateCcw, Loader2 } from 'lucide-react';
 import type { PlaybackMode } from '@/lib/audio/engine';
 
@@ -36,62 +35,33 @@ const PlayerControls = ({
   fileName,
   isExporting,
   onTogglePlay,
-  onSeek,
   onExport,
   onReset,
 }: PlayerControlsProps) => {
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const isDraggingRef = useRef(false);
-  const barRef = useRef<HTMLDivElement>(null);
-
-  const seekFromClientX = useCallback((clientX: number) => {
-    if (!barRef.current || duration <= 0) return;
-    const rect = barRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    onSeek(pct * duration);
-  }, [duration, onSeek]);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    isDraggingRef.current = true;
-    seekFromClientX(e.clientX);
-
-    const handleMouseMove = (ev: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-      seekFromClientX(ev.clientX);
-    };
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  }, [seekFromClientX]);
-
   return (
-    <div className="w-full glass-strong rounded-2xl p-5 space-y-4">
-      {/* Track info */}
-      <div className="flex items-center justify-between">
-        <div className="min-w-0">
+    <div className="w-full glass-strong rounded-2xl p-4 space-y-3">
+      {/* Track info + actions */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-sm text-foreground font-medium truncate">{fileName}</p>
           <p className="text-xs text-muted-foreground font-mono">
             {mode ? modeLabels[mode] : 'No Effect'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onExport}
             disabled={isExporting || !mode}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium 
               bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20
-              disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
           >
             {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button
             onClick={onReset}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors active:scale-95"
             title="New track"
           >
             <RotateCcw className="w-4 h-4" />
@@ -99,28 +69,14 @@ const PlayerControls = ({
         </div>
       </div>
 
-      {/* Progress bar — supports click + drag */}
-      <div
-        ref={barRef}
-        className="w-full h-2 bg-secondary/60 rounded-full cursor-pointer group relative"
-        onMouseDown={handleMouseDown}
-      >
-        <div
-          className="h-full bg-primary rounded-full relative pointer-events-none"
-          style={{ width: `${progress}%` }}
-        >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-primary rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-      </div>
-
-      {/* Time + controls */}
+      {/* Time + play button */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono text-muted-foreground w-12">{formatTime(currentTime)}</span>
 
         <button
           onClick={onTogglePlay}
-          className="w-12 h-12 rounded-full bg-primary flex items-center justify-center 
-            hover:bg-primary/90 transition-all glow-primary active:scale-95"
+          className="w-11 h-11 rounded-full bg-primary flex items-center justify-center 
+            hover:bg-primary/90 transition-all glow-primary active:scale-90"
         >
           {isPlaying ? (
             <Pause className="w-5 h-5 text-primary-foreground" />
