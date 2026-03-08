@@ -820,7 +820,12 @@ export class AudioEngine {
     sat.connect(comp);
     comp.connect(masterGain);
 
-    this.chainNodes = [inputGain, masterGain];
+    // Spatial processing
+    const spatial = buildSpatialChain(ctx, p.spatial);
+    this.liveNodes.spatialWetGain = spatial.wetGain;
+    masterGain.connect(spatial.input);
+
+    this.chainNodes = [inputGain, spatial.output];
   }
 
   private stopSource() {
