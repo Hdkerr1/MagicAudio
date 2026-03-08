@@ -156,7 +156,7 @@ export async function processRemix(
   // 2b. Mud removal at 250-400Hz — THE most common problem in all music
   const mudCut = offlineCtx.createBiquadFilter();
   mudCut.type = 'peaking'; mudCut.frequency.value = 300;
-  mudCut.gain.value = isBassHeavy ? -3 : -2; // More cut on bass-heavy tracks
+  mudCut.gain.value = isBassHeavy ? -2 : -1; // Gentler
   mudCut.Q.value = 1.2;
 
   // 2c. Box/honk removal at 500-700Hz
