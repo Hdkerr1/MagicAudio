@@ -54,6 +54,60 @@ function generateReverbIR(sampleRate: number, duration: number): AudioBuffer {
   return ir;
 }
 
+/**
+ * Generate a large concert hall impulse response — spacious, warm, with distinct echoes.
+ * Longer pre-delay + dense early reflections + smooth tail for that "hall" sound.
+ */
+function generateHallIR(sampleRate: number): AudioBuffer {
+  const duration = 3.5; // Long hall tail
+  const length = Math.ceil(sampleRate * duration);
+  const ctx = new OfflineAudioContext(2, length, sampleRate);
+  const ir = ctx.createBuffer(2, length, sampleRate);
+
+  // Hall early reflections — more spread out than room reverb, with pre-delay
+  const earlyTaps = [
+    { time: 0.025, gain: 0.6 },  { time: 0.038, gain: 0.5 },
+    { time: 0.055, gain: 0.45 }, { time: 0.072, gain: 0.38 },
+    { time: 0.095, gain: 0.32 }, { time: 0.120, gain: 0.26 },
+    { time: 0.155, gain: 0.2 },  { time: 0.195, gain: 0.16 },
+    { time: 0.240, gain: 0.12 }, { time: 0.300, gain: 0.08 },
+    { time: 0.370, gain: 0.05 },
+  ];
+
+  for (let ch = 0; ch < 2; ch++) {
+    const data = ir.getChannelData(ch);
+    let seed = ch === 0 ? 54321 : 98765;
+    const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed / 0x7fffffff) * 2 - 1; };
+
+    // Early reflections with stereo spread
+    for (const tap of earlyTaps) {
+      const stereoOffset = ch * Math.floor(0.006 * sampleRate); // wider stereo than room
+      const idx = Math.floor(tap.time * sampleRate) + stereoOffset;
+      if (idx < length) {
+        data[idx] += tap.gain * (0.8 + rand() * 0.2);
+        // Add a secondary reflection for density
+        const idx2 = idx + Math.floor(0.004 * sampleRate * (1 + rand() * 0.3));
+        if (idx2 < length) data[idx2] += tap.gain * 0.3 * (0.8 + rand() * 0.2);
+      }
+    }
+
+    // Dense diffuse tail — dual-decay (warm body + airy tail)
+    const startSample = Math.floor(0.08 * sampleRate);
+    for (let i = startSample; i < length; i++) {
+      const t = i / sampleRate;
+      // Dual decay: fast warm body + slow airy tail
+      const bodyDecay = 0.55 * Math.exp(-t * 1.8);
+      const tailDecay = 0.35 * Math.exp(-t * 0.8);
+      const decay = bodyDecay + tailDecay;
+      // HF damping for warmth (hall absorbs highs over distance)
+      const hfDamp = 0.6 * Math.exp(-t * 2.0) + 0.4 * Math.exp(-t * 0.5);
+      const sample = rand() * hfDamp + rand() * (1 - hfDamp) * 0.2;
+      data[i] += sample * decay * 0.14;
+    }
+  }
+  return ir;
+}
+
 function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuffer {
   const length = Math.ceil(sampleRate * duration);
   const ctx = new OfflineAudioContext(2, length, sampleRate);
