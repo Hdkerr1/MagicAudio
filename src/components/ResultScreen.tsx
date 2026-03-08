@@ -43,7 +43,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
     const baseName = originalName.replace(/\.[^.]+$/, '');
     const a = document.createElement('a');
     a.href = audioUrl;
-    a.download = `${baseName}_${mode}.wav`;
+    a.download = `${baseName}_${mode}.mp3`;
     a.click();
   };
 
@@ -120,7 +120,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
             className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
           >
             <Download className="w-4 h-4" />
-            Download WAV
+            Download MP3
           </Button>
           <Button
             onClick={onReset}

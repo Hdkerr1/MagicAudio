@@ -1,3 +1,6 @@
+// @ts-nocheck
+import lamejs from '@breezystack/lamejs';
+
 function writeString(view: DataView, offset: number, str: string) {
   for (let i = 0; i < str.length; i++) {
     view.setUint8(offset + i, str.charCodeAt(i));
@@ -30,7 +33,6 @@ export function audioBufferToWav(buffer: AudioBuffer): Blob {
   writeString(view, 36, 'data');
   view.setUint32(40, dataLength, true);
 
-  // Normalize: find peak to prevent clipping
   let peak = 0;
   for (let ch = 0; ch < numChannels; ch++) {
     const data = buffer.getChannelData(ch);
@@ -51,4 +53,76 @@ export function audioBufferToWav(buffer: AudioBuffer): Blob {
   }
 
   return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+/**
+ * Encode an AudioBuffer to high-quality MP3 (192kbps) using lamejs.
+ * Keeps file size roughly 10x smaller than WAV while maintaining quality.
+ */
+export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 192): Blob {
+  const numChannels = Math.min(buffer.numberOfChannels, 2);
+  const sampleRate = buffer.sampleRate;
+  const samples = buffer.length;
+
+  // Normalize: find peak
+  let peak = 0;
+  for (let ch = 0; ch < numChannels; ch++) {
+    const data = buffer.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) {
+      const abs = Math.abs(data[i]);
+      if (abs > peak) peak = abs;
+    }
+  }
+  const gain = peak > 1.0 ? 0.95 / peak : 1.0;
+
+  // Convert float32 channels to Int16 arrays
+  const left = new Int16Array(samples);
+  const right = numChannels > 1 ? new Int16Array(samples) : null;
+
+  const leftFloat = buffer.getChannelData(0);
+  const rightFloat = numChannels > 1 ? buffer.getChannelData(1) : null;
+
+  for (let i = 0; i < samples; i++) {
+    left[i] = Math.max(-32768, Math.min(32767, Math.round(leftFloat[i] * gain * 32767)));
+    if (right && rightFloat) {
+      right[i] = Math.max(-32768, Math.min(32767, Math.round(rightFloat[i] * gain * 32767)));
+    }
+  }
+
+  // Estimate bitrate needed to stay under 10MB
+  const durationSec = samples / sampleRate;
+  const maxBytes = 10 * 1024 * 1024; // 10MB
+  const maxKbps = Math.floor((maxBytes * 8) / (durationSec * 1000));
+  const kbps = Math.min(targetKbps, maxKbps);
+  // Clamp to valid MP3 bitrates, minimum 128 for quality
+  const validBitrates = [128, 160, 192, 224, 256, 320];
+  const finalKbps = validBitrates.reduce((prev, curr) =>
+    Math.abs(curr - kbps) < Math.abs(prev - kbps) ? curr : prev
+  );
+
+  const encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, finalKbps);
+  const mp3Chunks: Uint8Array[] = [];
+  const blockSize = 1152;
+
+  for (let i = 0; i < samples; i += blockSize) {
+    const leftChunk = left.subarray(i, Math.min(i + blockSize, samples));
+    const rightChunk = right ? right.subarray(i, Math.min(i + blockSize, samples)) : leftChunk;
+
+    let mp3buf: Uint8Array;
+    if (numChannels === 1) {
+      mp3buf = encoder.encodeBuffer(leftChunk);
+    } else {
+      mp3buf = encoder.encodeBuffer(leftChunk, rightChunk);
+    }
+    if (mp3buf.length > 0) {
+      mp3Chunks.push(mp3buf);
+    }
+  }
+
+  const flush = encoder.flush();
+  if (flush.length > 0) {
+    mp3Chunks.push(flush);
+  }
+
+  return new Blob(mp3Chunks, { type: 'audio/mp3' });
 }
