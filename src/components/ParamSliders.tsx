@@ -26,6 +26,7 @@ const sliderDefs: Record<string, SliderDef[]> = {
     { key: 'bass', label: 'Bass', min: 0, max: 1, step: 0.01 },
     { key: 'presence', label: 'Presence', min: 0, max: 1, step: 0.01 },
     { key: 'punch', label: 'Punch', min: 0, max: 1, step: 0.01 },
+    { key: 'hall', label: 'Hall Echo', min: 0, max: 1, step: 0.01 },
   ],
   'lofi': [
     { key: 'speed', label: 'Speed', min: 0.7, max: 1.0, step: 0.01, unit: 'x' },

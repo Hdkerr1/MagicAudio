@@ -100,11 +100,11 @@ export function autoTuneParams(analysis: AudioAnalysis): ModeParams {
       reverbDecay: energy > 0.5 ? 4.5 + energy * 2 : 3 + energy * 2,
     },
     'remix': {
-      // Bass-heavy → less bass boost (already has it), more presence
-      // Bright tracks → more bass, less presence
       bass: bassRatio > 0.4 ? 0.3 + (1 - bassRatio) * 0.4 : 0.5 + (1 - bassRatio) * 0.3,
       presence: brightness < 0.1 ? 0.6 + (1 - brightness) * 0.2 : 0.4 + brightness * 0.3,
       punch: dynamicRange > 0.4 ? 0.4 + dynamicRange * 0.3 : 0.5 + (1 - dynamicRange) * 0.2,
+      // More hall on spacious/dynamic tracks, less on dense/compressed
+      hall: dynamicRange > 0.3 ? 0.35 + dynamicRange * 0.25 : 0.3,
     },
     'lofi': {
       // High energy → slow more, add more warmth
