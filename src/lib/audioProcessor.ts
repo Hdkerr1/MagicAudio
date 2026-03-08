@@ -22,13 +22,13 @@ export async function processAudio(
 
   switch (mode) {
     case 'slowed-reverb':
-      processedBuffer = await processSlowedReverb(buffer, onProgress);
+      processedBuffer = await processSlowedReverb(buffer, onProgress, analysis);
       break;
     case 'remix':
       processedBuffer = await processRemix(buffer, onProgress, analysis);
       break;
     case 'lofi':
-      processedBuffer = await processLoFi(buffer, onProgress);
+      processedBuffer = await processLoFi(buffer, onProgress, analysis);
       break;
   }
 

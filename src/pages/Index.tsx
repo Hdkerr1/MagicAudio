@@ -9,9 +9,9 @@ type AppStep = 'select-mode' | 'upload' | 'processing' | 'studio';
 
 const Index = () => {
   const {
-    state, params, isLoaded, fileName, isExporting, analysis,
+    state, params, isLoaded, fileName, isExporting, analysis, bypassed,
     loadFile, togglePlay, seekTo, setMode, getAnalyser, getAudioBuffer,
-    updateParam, exportAudio, reset, play, pause,
+    updateParam, exportAudio, reset, play, pause, toggleBypass,
   } = useAudioEngine();
 
   const [step, setStep] = useState<AppStep>('select-mode');
@@ -111,12 +111,14 @@ const Index = () => {
       fileName={fileName}
       isExporting={isExporting}
       bpm={analysis?.bpm ?? null}
+      bypassed={bypassed}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
       onParamChange={updateParam}
       onExport={handleExport}
       onReset={handleReset}
       onBackToModes={handleBackToModesFromStudio}
+      onToggleBypass={toggleBypass}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />

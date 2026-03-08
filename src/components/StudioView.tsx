@@ -1,4 +1,4 @@
-import { Music, ArrowLeft, Waves, Volume2, Radio } from 'lucide-react';
+import { Music, ArrowLeft, Waves, Volume2, Radio, ToggleLeft, ToggleRight } from 'lucide-react';
 import { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
@@ -19,20 +19,22 @@ interface StudioViewProps {
   fileName: string;
   isExporting: boolean;
   bpm: number | null;
+  bypassed: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
   onExport: () => void;
   onReset: () => void;
   onBackToModes: () => void;
+  onToggleBypass: () => void;
   getAnalyser: () => AnalyserNode | null;
   getAudioBuffer: () => AudioBuffer | null;
 }
 
 const StudioView = ({
-  state, params, fileName, isExporting, bpm,
+  state, params, fileName, isExporting, bpm, bypassed,
   onTogglePlay, onSeek, onParamChange,
-  onExport, onReset, onBackToModes, getAnalyser, getAudioBuffer,
+  onExport, onReset, onBackToModes, onToggleBypass, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
   const currentMode = state.mode ? modeInfo[state.mode] : null;
@@ -65,6 +67,23 @@ const StudioView = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* A/B Bypass Toggle */}
+          <button
+            onClick={onToggleBypass}
+            className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all text-sm font-semibold ${
+              bypassed
+                ? 'border-muted-foreground/40 bg-muted/30 text-muted-foreground'
+                : 'border-primary/40 bg-primary/15 text-primary'
+            }`}
+            title={bypassed ? 'Listening to original — click for processed' : 'Listening to processed — click for original'}
+          >
+            {bypassed ? (
+              <ToggleLeft className="w-4 h-4" />
+            ) : (
+              <ToggleRight className="w-4 h-4" />
+            )}
+            {bypassed ? 'Original' : 'Processed'}
+          </button>
           {bpm && (
             <div className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border/50 bg-secondary/30">
               <span className="text-xs font-mono text-muted-foreground">♪</span>

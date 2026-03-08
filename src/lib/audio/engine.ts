@@ -414,8 +414,9 @@ export class AudioEngine {
   private chainNodes: AudioNode[] = [];
   private noiseSource: AudioBufferSourceNode | null = null;
   private lfoNode: OscillatorNode | null = null;
-  private chainMode: PlaybackMode = null; // Track which mode the chain was built for
+  private chainMode: PlaybackMode = null;
   private seekDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _bypassed = false;
 
   private params: ModeParams = JSON.parse(JSON.stringify(defaultParams));
 
@@ -448,10 +449,28 @@ export class AudioEngine {
   getAudioBuffer(): AudioBuffer | null { return this.audioBuffer; }
   getIsPlaying(): boolean { return this.isPlaying; }
   getMode(): PlaybackMode { return this.currentMode; }
+  isBypassed(): boolean { return this._bypassed; }
+
+  async setBypass(bypassed: boolean) {
+    if (this._bypassed === bypassed) return;
+    this._bypassed = bypassed;
+    // Force chain rebuild
+    this.chainMode = '__force_rebuild__' as any;
+    const wasPlaying = this.isPlaying;
+    const time = this.getCurrentTime();
+    if (wasPlaying) {
+      this.stopSource();
+      this.isPlaying = false;
+    }
+    this.pausedAt = time;
+    if (wasPlaying) await this.play();
+    this.emitState();
+  }
   getParams(): ModeParams { return this.params; }
 
   getDuration(): number {
     if (!this.audioBuffer) return 0;
+    if (this._bypassed) return this.audioBuffer.duration;
     let rate = 1;
     if (this.currentMode === 'slowed-reverb') rate = this.params['slowed-reverb'].speed;
     else if (this.currentMode === 'lofi') rate = this.params['lofi'].speed;
@@ -564,10 +583,12 @@ export class AudioEngine {
     this.sourceNode.buffer = this.audioBuffer;
 
     let rate = 1;
-    if (this.currentMode === 'slowed-reverb') {
-      rate = this.params['slowed-reverb'].speed;
-    } else if (this.currentMode === 'lofi') {
-      rate = this.params['lofi'].speed;
+    if (!this._bypassed) {
+      if (this.currentMode === 'slowed-reverb') {
+        rate = this.params['slowed-reverb'].speed;
+      } else if (this.currentMode === 'lofi') {
+        rate = this.params['lofi'].speed;
+      }
     }
     this.sourceNode.playbackRate.value = rate;
 
@@ -669,11 +690,14 @@ export class AudioEngine {
     this.gainNode = this.ctx.createGain();
     this.gainNode.gain.value = 0.9;
 
-    switch (this.currentMode) {
-      case 'slowed-reverb': this.buildSlowedReverbChain(); break;
-      case 'remix': this.buildRemixChain(); break;
-      case 'lofi': this.buildLoFiChain(); break;
+    if (!this._bypassed) {
+      switch (this.currentMode) {
+        case 'slowed-reverb': this.buildSlowedReverbChain(); break;
+        case 'remix': this.buildRemixChain(); break;
+        case 'lofi': this.buildLoFiChain(); break;
+      }
     }
+    // In bypass mode, chainNodes stays empty → source connects directly to analyser
 
     const lastChain = this.chainNodes.length > 0 ? this.chainNodes[this.chainNodes.length - 1] : null;
     if (lastChain) lastChain.connect(this.analyser);
