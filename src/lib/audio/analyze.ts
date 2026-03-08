@@ -136,7 +136,7 @@ function detectBPM(buffer: AudioBuffer): number {
     let score = peak.corr;
 
     // Tempo prior: prefer 80-160 BPM range (most music)
-    score *= 1 + 0.2 * Math.exp(-((bpm - 120) / 50) ** 2);
+    score *= 1 + 0.2 * Math.exp(-(((bpm - 120) / 50) ** 2));
 
     // Octave consistency: check if half/double tempo also has a peak
     const halfLag = peak.lag * 2;
