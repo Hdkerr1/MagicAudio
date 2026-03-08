@@ -168,6 +168,9 @@ export class AudioEngine {
       if (key === 'punch' && this.liveNodes.parallelCompGain) {
         this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.5, this.ctx!.currentTime, 0.05);
       }
+      if (key === 'hall' && this.liveNodes.hallWetGain) {
+        this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.45, this.ctx!.currentTime, 0.05);
+      }
     }
 
     if (mode === 'lofi' && this.currentMode === 'lofi') {
