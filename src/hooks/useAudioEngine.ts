@@ -58,6 +58,14 @@ export function useAudioEngine() {
   const getAnalyser = useCallback(() => engineRef.current?.getAnalyser() ?? null, []);
   const getAudioBuffer = useCallback(() => engineRef.current?.getAudioBuffer() ?? null, []);
 
+  const [bypassed, setBypassed] = useState(false);
+  const toggleBypass = useCallback(async () => {
+    if (!engineRef.current) return;
+    const next = !engineRef.current.isBypassed();
+    await engineRef.current.setBypass(next);
+    setBypassed(next);
+  }, []);
+
   const updateParam = useCallback(<M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => {
     engineRef.current?.updateParam(mode, key, value);
     setParams(prev => ({
