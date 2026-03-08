@@ -104,7 +104,7 @@ const Index = () => {
 
   // Step 3: Converting
   if (step === 'processing' && selectedMode) {
-    return <BufferingScreen mode={selectedMode} fileName={fileName} />;
+    return <BufferingScreen mode={selectedMode} fileName={fileName} bpm={analysis?.bpm} />;
   }
 
   // Step 4: Studio player
