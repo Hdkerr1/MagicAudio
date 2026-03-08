@@ -19,20 +19,22 @@ interface StudioViewProps {
   fileName: string;
   isExporting: boolean;
   bpm: number | null;
+  bypassed: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
   onExport: () => void;
   onReset: () => void;
   onBackToModes: () => void;
+  onToggleBypass: () => void;
   getAnalyser: () => AnalyserNode | null;
   getAudioBuffer: () => AudioBuffer | null;
 }
 
 const StudioView = ({
-  state, params, fileName, isExporting, bpm,
+  state, params, fileName, isExporting, bpm, bypassed,
   onTogglePlay, onSeek, onParamChange,
-  onExport, onReset, onBackToModes, getAnalyser, getAudioBuffer,
+  onExport, onReset, onBackToModes, onToggleBypass, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
   const currentMode = state.mode ? modeInfo[state.mode] : null;
