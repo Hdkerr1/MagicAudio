@@ -894,10 +894,14 @@ export class AudioEngine {
     sat.connect(comp);
     comp.connect(masterGain);
 
+    // Depth enhancer for premium feel
+    const depth = buildDepthEnhancer(ctx);
+    masterGain.connect(depth.input);
+
     // Spatial processing
     const spatial = buildSpatialChain(ctx, p.spatial);
     this.liveNodes.spatialWetGain = spatial.wetGain;
-    masterGain.connect(spatial.input);
+    depth.output.connect(spatial.input);
 
     this.chainNodes = [inputGain, spatial.output];
   }
