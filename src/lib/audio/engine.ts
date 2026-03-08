@@ -582,10 +582,12 @@ export class AudioEngine {
     this.sourceNode.buffer = this.audioBuffer;
 
     let rate = 1;
-    if (this.currentMode === 'slowed-reverb') {
-      rate = this.params['slowed-reverb'].speed;
-    } else if (this.currentMode === 'lofi') {
-      rate = this.params['lofi'].speed;
+    if (!this._bypassed) {
+      if (this.currentMode === 'slowed-reverb') {
+        rate = this.params['slowed-reverb'].speed;
+      } else if (this.currentMode === 'lofi') {
+        rate = this.params['lofi'].speed;
+      }
     }
     this.sourceNode.playbackRate.value = rate;
 
