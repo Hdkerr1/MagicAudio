@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import DropZone from '@/components/DropZone';
 import ModeSelector from '@/components/ModeSelector';
 import StudioView from '@/components/StudioView';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
@@ -12,7 +11,7 @@ const Index = () => {
   const {
     state, params, isLoaded, fileName, isExporting, analysis,
     loadFile, togglePlay, seekTo, setMode, getAnalyser, getAudioBuffer,
-    updateParam, exportAudio, reset, play,
+    updateParam, exportAudio, reset, play, pause,
   } = useAudioEngine();
 
   const [step, setStep] = useState<AppStep>('select-mode');
@@ -21,26 +20,18 @@ const Index = () => {
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  // Step 1: User picks a mode first
+  // Step 1: User picks a mode — always show upload screen
   const handleModeSelect = useCallback((mode: ProcessingMode) => {
     setSelectedMode(mode);
-    // If audio is already loaded, skip upload and go straight to processing
-    if (isLoaded) {
-      setMode(mode);
-      setStep('processing');
-      timerRef.current = setTimeout(() => {
-        setStep('studio');
-        setTimeout(() => play(), 100);
-      }, 3000);
-    } else {
-      setStep('upload');
-    }
-  }, [isLoaded, setMode, play]);
+    setStep('upload');
+  }, []);
 
   // Step 2: User uploads audio → processing starts
   const handleFileSelected = useCallback(async (f: File) => {
     if (!selectedMode) return;
     try {
+      // Pause any currently playing audio before loading new file
+      if (state.isPlaying) pause();
       await loadFile(f);
       setMode(selectedMode);
       setStep('processing');
@@ -52,7 +43,7 @@ const Index = () => {
     } catch {
       toast.error('Failed to decode audio file');
     }
-  }, [loadFile, selectedMode, setMode, play]);
+  }, [loadFile, selectedMode, setMode, play, pause, state.isPlaying]);
 
   const handleReset = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -61,14 +52,13 @@ const Index = () => {
     setSelectedMode(null);
   }, [reset]);
 
-  // Back to mode selection from studio (keep audio loaded)
+  // Back to mode selection from studio — keep audio playing in background
   const handleBackToModesFromStudio = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    // Pause if playing
-    if (state.isPlaying) togglePlay();
+    // Don't pause — let the song continue playing in background
     setStep('select-mode');
     setSelectedMode(null);
-  }, [state.isPlaying, togglePlay]);
+  }, []);
 
   const handleBackToModes = useCallback(() => {
     setStep('select-mode');
@@ -94,7 +84,14 @@ const Index = () => {
 
   // Step 1: Choose mode
   if (step === 'select-mode') {
-    return <ModeSelector fileName="" onModeSelect={handleModeSelect} onBack={() => {}} />;
+    return (
+      <ModeSelector
+        fileName=""
+        onModeSelect={handleModeSelect}
+        onBack={() => {}}
+        isPlaying={state.isPlaying}
+      />
+    );
   }
 
   // Step 2: Upload audio
