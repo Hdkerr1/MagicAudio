@@ -990,10 +990,32 @@ export class AudioEngine {
     this.chainNodes = [inputGain, spatial.output];
   }
 
+  /** Stop source immediately — used internally */
   private stopSource() {
     if (this.sourceNode) { try { this.sourceNode.stop(); } catch {} this.sourceNode.disconnect(); this.sourceNode = null; }
     if (this.noiseSource) { try { this.noiseSource.stop(); } catch {} this.noiseSource = null; }
     if (this.lfoNode) { try { this.lfoNode.stop(); } catch {} this.lfoNode = null; }
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+  }
+
+  /** Stop only the source node (not noise/lfo which are part of chain) — for seeking */
+  private stopSourceSmooth() {
+    if (this.sourceNode) {
+      try { this.sourceNode.stop(); } catch {}
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+    // Don't stop noise/lfo — they're part of the persistent chain
+    // Don't cancel RAF — we want UI to keep updating
+  }
+
+  /** Hard stop for pause — stops source after fade completes */
+  private stopSourceImmediate() {
+    if (this.sourceNode) {
+      try { this.sourceNode.stop(); } catch {}
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
   }
 
