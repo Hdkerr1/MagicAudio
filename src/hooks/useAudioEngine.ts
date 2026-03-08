@@ -68,6 +68,6 @@ export function useAudioEngine() {
   return {
     state, params, isLoaded, fileName, isExporting,
     loadFile, play, pause, togglePlay, seekTo, setMode,
-    getAnalyser, updateParam, exportAudio, reset,
+    getAnalyser, getAudioBuffer, updateParam, exportAudio, reset,
   };
 }
