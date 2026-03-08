@@ -895,7 +895,8 @@ export class AudioEngine {
 
     // → Additive EQ
     ultraCut.connect(bassShelf);
-    bassShelf.connect(presenceBoost);
+    bassShelf.connect(kickPunch);
+    kickPunch.connect(presenceBoost);
     presenceBoost.connect(airLift);
 
     // → Compression (parallel)
