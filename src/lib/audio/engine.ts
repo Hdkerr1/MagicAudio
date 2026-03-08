@@ -414,8 +414,6 @@ export class AudioEngine {
   private chainNodes: AudioNode[] = [];
   private noiseSource: AudioBufferSourceNode | null = null;
   private lfoNode: OscillatorNode | null = null;
-  
-  private busy = false; // Prevent re-entrant play/pause
 
   private params: ModeParams = JSON.parse(JSON.stringify(defaultParams));
 

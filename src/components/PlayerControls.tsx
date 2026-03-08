@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import { Play, Pause, Download, RotateCcw, Loader2 } from 'lucide-react';
 import type { PlaybackMode } from '@/lib/audio/engine';
 
@@ -40,12 +41,32 @@ const PlayerControls = ({
   onReset,
 }: PlayerControlsProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const isDraggingRef = useRef(false);
+  const barRef = useRef<HTMLDivElement>(null);
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const seekFromClientX = useCallback((clientX: number) => {
+    if (!barRef.current || duration <= 0) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     onSeek(pct * duration);
-  };
+  }, [duration, onSeek]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    isDraggingRef.current = true;
+    seekFromClientX(e.clientX);
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      seekFromClientX(ev.clientX);
+    };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [seekFromClientX]);
 
   return (
     <div className="w-full glass-strong rounded-2xl p-5 space-y-4">
@@ -78,16 +99,17 @@ const PlayerControls = ({
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar — supports click + drag */}
       <div
-        className="w-full h-1.5 bg-secondary/60 rounded-full cursor-pointer group relative"
-        onClick={handleSeek}
+        ref={barRef}
+        className="w-full h-2 bg-secondary/60 rounded-full cursor-pointer group relative"
+        onMouseDown={handleMouseDown}
       >
         <div
-          className="h-full bg-primary rounded-full transition-[width] duration-100 relative"
+          className="h-full bg-primary rounded-full relative pointer-events-none"
           style={{ width: `${progress}%` }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-primary rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
