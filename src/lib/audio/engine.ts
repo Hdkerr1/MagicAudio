@@ -583,7 +583,12 @@ export class AudioEngine {
     postLP.connect(wetGain); wetGain.connect(mixBus);
     mixBus.connect(comp);
 
-    this.chainNodes = [inputGain, comp];
+    // Spatial processing
+    const spatial = buildSpatialChain(ctx, p.spatial);
+    this.liveNodes.spatialWetGain = spatial.wetGain;
+    comp.connect(spatial.input);
+
+    this.chainNodes = [inputGain, spatial.output];
   }
 
   /**
