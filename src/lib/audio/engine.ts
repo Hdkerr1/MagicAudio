@@ -13,7 +13,7 @@ export interface ModeParams {
 
 export const defaultParams: ModeParams = {
   'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4 },
-  'remix': { bass: 0.5, presence: 0.5, punch: 0.5 },
+  'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4 },
   'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88 },
 };
 
