@@ -95,7 +95,7 @@ const StudioView = ({
             <div className="p-1 rounded-lg bg-primary/10">
               <Music className="w-4 h-4 text-primary" />
             </div>
-            <span className="text-base font-bold text-gradient-primary tracking-tight">SoundForge</span>
+            <span className="text-base font-bold text-gradient-primary tracking-tight">TuneSence</span>
           </div>
         </div>
 
