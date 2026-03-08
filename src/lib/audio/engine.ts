@@ -133,25 +133,35 @@ function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuff
  * subtle sub-harmonic synthesis, and presence sparkle for premium feel.
  * Returns { input, output } to splice into signal chain.
  */
-function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainNode } {
+function buildDepthEnhancer(ctx: AudioContext, skipBass = false): { input: GainNode; output: GainNode } {
   const input = ctx.createGain();
   input.gain.value = 1.0;
   const output = ctx.createGain();
   output.gain.value = 1.0;
 
-  // 1. Sub-bass warmth — gentle shelf boost below 80Hz (+3dB)
-  const subBass = ctx.createBiquadFilter();
-  subBass.type = 'lowshelf'; subBass.frequency.value = 80; subBass.gain.value = 3;
+  // Chain start
+  let lastNode: AudioNode = input;
 
-  // 2. Psychoacoustic bass — narrow boost at 60Hz to add "felt" bass
-  const psychoBass = ctx.createBiquadFilter();
-  psychoBass.type = 'peaking'; psychoBass.frequency.value = 60;
-  psychoBass.gain.value = 2.5; psychoBass.Q.value = 1.2;
+  if (!skipBass) {
+    // 1. Sub-bass warmth — gentle shelf boost below 80Hz (+3dB)
+    const subBass = ctx.createBiquadFilter();
+    subBass.type = 'lowshelf'; subBass.frequency.value = 80; subBass.gain.value = 3;
 
-  // 3. Body/fullness — slight 250Hz warmth
-  const body = ctx.createBiquadFilter();
-  body.type = 'peaking'; body.frequency.value = 250;
-  body.gain.value = 1.5; body.Q.value = 0.8;
+    // 2. Psychoacoustic bass — narrow boost at 60Hz to add "felt" bass
+    const psychoBass = ctx.createBiquadFilter();
+    psychoBass.type = 'peaking'; psychoBass.frequency.value = 60;
+    psychoBass.gain.value = 2.5; psychoBass.Q.value = 1.2;
+
+    // 3. Body/fullness — slight 250Hz warmth
+    const body = ctx.createBiquadFilter();
+    body.type = 'peaking'; body.frequency.value = 250;
+    body.gain.value = 1.5; body.Q.value = 0.8;
+
+    lastNode.connect(subBass);
+    subBass.connect(psychoBass);
+    psychoBass.connect(body);
+    lastNode = body;
+  }
 
   // 4. Vocal/instrument depth — 1kHz dip for 3D separation
   const depthDip = ctx.createBiquadFilter();
@@ -174,17 +184,13 @@ function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainN
   const exciterCurve = new Float32Array(curveLen);
   for (let i = 0; i < curveLen; i++) {
     const x = (i / (curveLen - 1)) * 2 - 1;
-    // Soft asymmetric saturation — adds even harmonics for warmth
     exciterCurve[i] = x + 0.05 * x * x * Math.sign(x) - 0.02 * x * x * x;
   }
   exciter.curve = exciterCurve;
   exciter.oversample = '2x';
 
-  // Chain: input → subBass → psychoBass → body → depthDip → sparkle → airShimmer → exciter → output
-  input.connect(subBass);
-  subBass.connect(psychoBass);
-  psychoBass.connect(body);
-  body.connect(depthDip);
+  // Chain
+  (lastNode as AudioNode).connect(depthDip);
   depthDip.connect(sparkle);
   sparkle.connect(airShimmer);
   airShimmer.connect(exciter);
@@ -316,7 +322,8 @@ function buildSpatialChain(ctx: AudioContext, spatialAmount: number): {
 }
 
 /**
- * Build Mid/Side stereo widening. Boosts the side (difference) channel.
+ * Build proper Mid/Side stereo widening without phase issues.
+ * Uses complementary EQ and subtle delay for natural width.
  */
 function buildStereoWidener(ctx: AudioContext, widthAmount: number): {
   input: GainNode; output: GainNode; sideGain: GainNode;
@@ -329,54 +336,63 @@ function buildStereoWidener(ctx: AudioContext, widthAmount: number): {
   const splitter = ctx.createChannelSplitter(2);
   const merger = ctx.createChannelMerger(2);
 
-  // Mid = (L+R)/2, Side = (L-R)/2
-  // We reconstruct with boosted sides
-  const midGain = ctx.createGain();
-  midGain.gain.value = 0.7; // Slightly reduce mid for wider feel
-
-  const sideGain = ctx.createGain();
-  sideGain.gain.value = 0.5 + widthAmount * 1.0; // Boost sides
-
-  // L = Mid + Side, R = Mid - Side
-  // Using scriptless approach: duplicate channels with gain manipulation
-  // Simpler approach: use delay-based widening + channel manipulation
-  
-  // Left channel processing
+  // Left channel: direct path
   const leftGain = ctx.createGain();
   leftGain.gain.value = 1.0;
-  
-  // Right channel processing  
+
+  // Right channel: direct path
   const rightGain = ctx.createGain();
   rightGain.gain.value = 1.0;
 
-  // Subtle delay on one channel for Haas effect widening
-  const haasDelay = ctx.createDelay(0.05);
-  haasDelay.delayTime.value = 0.0003 + widthAmount * 0.012; // 0.3-12.3ms based on width
-
-  // Side enhancement via allpass filters (phase-based widening)
+  // Side enhancement: subtle allpass phase difference for natural widening
   const allpassL = ctx.createBiquadFilter();
-  allpassL.type = 'allpass'; allpassL.frequency.value = 800; allpassL.Q.value = 0.7;
-  
+  allpassL.type = 'allpass';
+  allpassL.frequency.value = 600 + widthAmount * 400;
+  allpassL.Q.value = 0.5;
+
   const allpassR = ctx.createBiquadFilter();
-  allpassR.type = 'allpass'; allpassR.frequency.value = 1200; allpassR.Q.value = 0.7;
+  allpassR.type = 'allpass';
+  allpassR.frequency.value = 1400 + widthAmount * 600;
+  allpassR.Q.value = 0.5;
+
+  // Cross-feed with inverted polarity for width (side = L - R)
+  const crossL = ctx.createGain();
+  crossL.gain.value = -0.1 * widthAmount; // subtle R into L inverted
+  const crossR = ctx.createGain();
+  crossR.gain.value = -0.1 * widthAmount; // subtle L into R inverted
+
+  // Side gain control for live updates
+  const sideGain = ctx.createGain();
+  sideGain.gain.value = widthAmount * 0.3;
+
+  // Complementary EQ — boost different bands in L vs R for perceived width
+  const eqL = ctx.createBiquadFilter();
+  eqL.type = 'peaking'; eqL.frequency.value = 2000;
+  eqL.gain.value = widthAmount * 1.5; eqL.Q.value = 0.8;
+
+  const eqR = ctx.createBiquadFilter();
+  eqR.type = 'peaking'; eqR.frequency.value = 4000;
+  eqR.gain.value = widthAmount * 1.5; eqR.Q.value = 0.8;
 
   input.connect(splitter);
-  
-  // Left: direct + allpass
-  splitter.connect(leftGain, 0);
+
+  // Left: direct + allpass + complementary EQ
   splitter.connect(allpassL, 0);
-  allpassL.connect(sideGain);
-
-  // Right: Haas delayed + allpass
-  splitter.connect(haasDelay, 1);
-  haasDelay.connect(rightGain);
-  splitter.connect(allpassR, 1);
-  allpassR.connect(sideGain);
-
+  allpassL.connect(eqL);
+  eqL.connect(leftGain);
   leftGain.connect(merger, 0, 0);
+
+  // Right: direct + allpass + complementary EQ
+  splitter.connect(allpassR, 1);
+  allpassR.connect(eqR);
+  eqR.connect(rightGain);
   rightGain.connect(merger, 0, 1);
-  sideGain.connect(merger, 0, 0);
-  sideGain.connect(merger, 0, 1);
+
+  // Cross-feed for extra width
+  splitter.connect(crossL, 1); // R → L inverted
+  crossL.connect(merger, 0, 0);
+  splitter.connect(crossR, 0); // L → R inverted
+  crossR.connect(merger, 0, 1);
 
   merger.connect(output);
 
@@ -675,11 +691,16 @@ export class AudioEngine {
     const subCut = ctx.createBiquadFilter();
     subCut.type = 'highpass'; subCut.frequency.value = 28; subCut.Q.value = 0.5;
 
-    // Bass warmth shelf
+    // Bass warmth shelf — deep sub-bass
     const bassShelf = ctx.createBiquadFilter();
-    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 100;
-    bassShelf.gain.value = p.bass * 6;
+    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
+    bassShelf.gain.value = p.bass * 8;
     this.liveNodes.bassShelf = bassShelf;
+
+    // Deep sub-bass resonance at 45Hz for "felt" bass
+    const subBassBoost = ctx.createBiquadFilter();
+    subBassBoost.type = 'peaking'; subBassBoost.frequency.value = 45;
+    subBassBoost.gain.value = p.bass * 5; subBassBoost.Q.value = 1.0;
 
     // Body/instrument enhancement around 200Hz
     const bodyBoost = ctx.createBiquadFilter();
@@ -756,7 +777,8 @@ export class AudioEngine {
     // EQ chain
     inputGain.connect(subCut);
     subCut.connect(bassShelf);
-    bassShelf.connect(bodyBoost);
+    bassShelf.connect(subBassBoost);
+    subBassBoost.connect(bodyBoost);
     bodyBoost.connect(mudCut);
     mudCut.connect(presenceBoost);
     presenceBoost.connect(airShelf);
@@ -787,8 +809,8 @@ export class AudioEngine {
     this.liveNodes.stereoWidthGain = widener.sideGain;
     limiter.connect(widener.input);
 
-    // Depth enhancer for premium feel
-    const depth = buildDepthEnhancer(ctx);
+    // Depth enhancer — skip bass (remix has its own deep bass chain)
+    const depth = buildDepthEnhancer(ctx, true);
     widener.output.connect(depth.input);
 
     // Spatial processing
