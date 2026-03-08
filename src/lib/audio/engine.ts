@@ -128,6 +128,195 @@ function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuff
   return buf;
 }
 
+/**
+ * Build an immersive spatial / Dolby Atmos-like processing chain.
+ * Uses cross-feed delays, HRTF-like filtering, and micro-reverb for 3D soundstage.
+ * Returns { input, output } nodes to splice into the main chain.
+ */
+function buildSpatialChain(ctx: AudioContext, spatialAmount: number): {
+  input: GainNode; output: GainNode; wetGain: GainNode;
+} {
+  const input = ctx.createGain();
+  input.gain.value = 1.0;
+  const output = ctx.createGain();
+  output.gain.value = 1.0;
+
+  // Dry path
+  const dryGain = ctx.createGain();
+  dryGain.gain.value = 1.0;
+  input.connect(dryGain);
+  dryGain.connect(output);
+
+  // === Spatial wet path ===
+  const wetGain = ctx.createGain();
+  wetGain.gain.value = spatialAmount * 0.35;
+
+  // Stereo cross-feed with HRTF-like delays (creates "around you" feeling)
+  const splitter = ctx.createChannelSplitter(2);
+  const merger = ctx.createChannelMerger(2);
+
+  // Left-to-right cross-feed with ITD (interaural time delay ~0.6ms)
+  const crossDelayLR = ctx.createDelay(0.01);
+  crossDelayLR.delayTime.value = 0.0006;
+  const crossGainLR = ctx.createGain();
+  crossGainLR.gain.value = 0.3;
+
+  // Right-to-left cross-feed
+  const crossDelayRL = ctx.createDelay(0.01);
+  crossDelayRL.delayTime.value = 0.0008; // Slightly different for asymmetry
+  const crossGainRL = ctx.createGain();
+  crossGainRL.gain.value = 0.25;
+
+  // HRTF-like filtering — slight high shelf cut on cross-feed (head shadow)
+  const headShadowL = ctx.createBiquadFilter();
+  headShadowL.type = 'lowpass'; headShadowL.frequency.value = 6000; headShadowL.Q.value = 0.5;
+  const headShadowR = ctx.createBiquadFilter();
+  headShadowR.type = 'lowpass'; headShadowR.frequency.value = 5500; headShadowR.Q.value = 0.5;
+
+  // Pinna reflection simulation — subtle comb-like delay
+  const pinnaDelayL = ctx.createDelay(0.005);
+  pinnaDelayL.delayTime.value = 0.00018; // ~0.18ms pinna reflection
+  const pinnaGainL = ctx.createGain();
+  pinnaGainL.gain.value = 0.15;
+  const pinnaDelayR = ctx.createDelay(0.005);
+  pinnaDelayR.delayTime.value = 0.00022;
+  const pinnaGainR = ctx.createGain();
+  pinnaGainR.gain.value = 0.12;
+
+  // Early spatial reflections (micro-reverb for envelopment)
+  const spatialDelay1 = ctx.createDelay(0.1);
+  spatialDelay1.delayTime.value = 0.012;
+  const spatialGain1 = ctx.createGain();
+  spatialGain1.gain.value = 0.18;
+
+  const spatialDelay2 = ctx.createDelay(0.1);
+  spatialDelay2.delayTime.value = 0.023;
+  const spatialGain2 = ctx.createGain();
+  spatialGain2.gain.value = 0.12;
+
+  const spatialDelay3 = ctx.createDelay(0.1);
+  spatialDelay3.delayTime.value = 0.037;
+  const spatialGain3 = ctx.createGain();
+  spatialGain3.gain.value = 0.08;
+
+  // Spatial reflection LP (warm, distant feel)
+  const spatialLP = ctx.createBiquadFilter();
+  spatialLP.type = 'lowpass'; spatialLP.frequency.value = 8000; spatialLP.Q.value = 0.5;
+
+  // === Routing ===
+  input.connect(splitter);
+
+  // Cross-feed L→R
+  splitter.connect(crossDelayLR, 0);
+  crossDelayLR.connect(headShadowL);
+  headShadowL.connect(crossGainLR);
+  crossGainLR.connect(merger, 0, 1); // L channel feeds into R
+
+  // Cross-feed R→L
+  splitter.connect(crossDelayRL, 1);
+  crossDelayRL.connect(headShadowR);
+  headShadowR.connect(crossGainRL);
+  crossGainRL.connect(merger, 0, 0); // R channel feeds into L
+
+  // Pinna reflections
+  splitter.connect(pinnaDelayL, 0);
+  pinnaDelayL.connect(pinnaGainL);
+  pinnaGainL.connect(merger, 0, 0);
+
+  splitter.connect(pinnaDelayR, 1);
+  pinnaDelayR.connect(pinnaGainR);
+  pinnaGainR.connect(merger, 0, 1);
+
+  // Early spatial reflections for envelopment
+  input.connect(spatialDelay1);
+  spatialDelay1.connect(spatialGain1);
+  spatialGain1.connect(spatialLP);
+
+  input.connect(spatialDelay2);
+  spatialDelay2.connect(spatialGain2);
+  spatialGain2.connect(spatialLP);
+
+  input.connect(spatialDelay3);
+  spatialDelay3.connect(spatialGain3);
+  spatialGain3.connect(spatialLP);
+
+  spatialLP.connect(merger, 0, 0);
+  spatialLP.connect(merger, 0, 1);
+
+  merger.connect(wetGain);
+  wetGain.connect(output);
+
+  return { input, output, wetGain };
+}
+
+/**
+ * Build Mid/Side stereo widening. Boosts the side (difference) channel.
+ */
+function buildStereoWidener(ctx: AudioContext, widthAmount: number): {
+  input: GainNode; output: GainNode; sideGain: GainNode;
+} {
+  const input = ctx.createGain();
+  input.gain.value = 1.0;
+  const output = ctx.createGain();
+  output.gain.value = 1.0;
+
+  const splitter = ctx.createChannelSplitter(2);
+  const merger = ctx.createChannelMerger(2);
+
+  // Mid = (L+R)/2, Side = (L-R)/2
+  // We reconstruct with boosted sides
+  const midGain = ctx.createGain();
+  midGain.gain.value = 0.7; // Slightly reduce mid for wider feel
+
+  const sideGain = ctx.createGain();
+  sideGain.gain.value = 0.5 + widthAmount * 1.0; // Boost sides
+
+  // L = Mid + Side, R = Mid - Side
+  // Using scriptless approach: duplicate channels with gain manipulation
+  // Simpler approach: use delay-based widening + channel manipulation
+  
+  // Left channel processing
+  const leftGain = ctx.createGain();
+  leftGain.gain.value = 1.0;
+  
+  // Right channel processing  
+  const rightGain = ctx.createGain();
+  rightGain.gain.value = 1.0;
+
+  // Subtle delay on one channel for Haas effect widening
+  const haasDelay = ctx.createDelay(0.05);
+  haasDelay.delayTime.value = 0.0003 + widthAmount * 0.012; // 0.3-12.3ms based on width
+
+  // Side enhancement via allpass filters (phase-based widening)
+  const allpassL = ctx.createBiquadFilter();
+  allpassL.type = 'allpass'; allpassL.frequency.value = 800; allpassL.Q.value = 0.7;
+  
+  const allpassR = ctx.createBiquadFilter();
+  allpassR.type = 'allpass'; allpassR.frequency.value = 1200; allpassR.Q.value = 0.7;
+
+  input.connect(splitter);
+  
+  // Left: direct + allpass
+  splitter.connect(leftGain, 0);
+  splitter.connect(allpassL, 0);
+  allpassL.connect(sideGain);
+
+  // Right: Haas delayed + allpass
+  splitter.connect(haasDelay, 1);
+  haasDelay.connect(rightGain);
+  splitter.connect(allpassR, 1);
+  allpassR.connect(sideGain);
+
+  leftGain.connect(merger, 0, 0);
+  rightGain.connect(merger, 0, 1);
+  sideGain.connect(merger, 0, 0);
+  sideGain.connect(merger, 0, 1);
+
+  merger.connect(output);
+
+  return { input, output, sideGain };
+}
+
 export class AudioEngine {
   private ctx: AudioContext | null = null;
   private sourceNode: AudioBufferSourceNode | null = null;
