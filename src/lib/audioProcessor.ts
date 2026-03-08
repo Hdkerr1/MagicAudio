@@ -162,7 +162,7 @@ async function processHardBass(
 
   // Soft clipper for final limiting
   const softClipper = offlineCtx.createWaveShaper();
-  softClipper.curve = createSoftClipCurve();
+  softClipper.curve = createSoftClipCurve() as Float32Array<ArrayBuffer>;
   softClipper.oversample = '4x';
 
   // Dry signal path
