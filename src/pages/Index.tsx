@@ -251,9 +251,10 @@ function BufferingScreen({ mode, fileName, bpm }: { mode: ProcessingMode; fileNa
 
   const stages = [
     { at: 0, text: 'Analyzing song characteristics...' },
-    { at: 25, text: 'Auto-tuning effect parameters...' },
-    { at: 50, text: 'Building audio chain...' },
-    { at: 75, text: 'Preparing playback...' },
+    { at: 20, text: bpm ? `Detected ${bpm} BPM — syncing effects to beat...` : 'Detecting tempo...' },
+    { at: 45, text: 'Auto-tuning effect parameters...' },
+    { at: 65, text: 'Building audio chain...' },
+    { at: 85, text: 'Preparing playback...' },
   ];
   const currentStage = [...stages].reverse().find(s => progress >= s.at)?.text || stages[0].text;
 
