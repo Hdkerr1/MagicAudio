@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, ArrowLeft } from 'lucide-react';
+import { Waves, Volume2, Radio, Music } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 
 interface ModeSelectorProps {
@@ -23,7 +23,7 @@ const modes = [
     id: 'remix' as ProcessingMode,
     title: 'Remix',
     subtitle: 'Premium Remix Engine',
-    description: 'Radio-ready remix with punchy bass, crisp presence, and professional mastering quality.',
+    description: 'Hall echo, punchy bass, crisp presence, and professional mastering quality.',
     icon: Volume2,
     glowClass: 'glow-accent',
     borderClass: 'hover:border-accent/50',
@@ -44,24 +44,44 @@ const modes = [
 ] as const;
 
 const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => {
+  const isLanding = !fileName;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4 py-12">
-      <button
-        onClick={onBack}
-        className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </button>
-
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Choose Your Style</h2>
-        <p className="text-muted-foreground">
-          Processing: <span className="text-foreground font-mono text-sm">{fileName}</span>
-        </p>
+      {/* Ambient background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/5 blur-[120px] animate-pulse-glow" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-accent/5 blur-[100px] animate-pulse-glow" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+      {/* Header / branding */}
+      <div className="relative z-10 text-center mb-10">
+        {isLanding && (
+          <div className="flex items-center justify-center gap-3 mb-5">
+            <div className="p-2.5 rounded-xl glass glow-primary">
+              <Music className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold text-gradient-primary tracking-tight">
+              SoundForge
+            </h1>
+          </div>
+        )}
+        <h2 className={`${isLanding ? 'text-xl' : 'text-3xl'} font-bold text-foreground mb-2`}>
+          {isLanding ? 'Choose how you want to convert your song' : 'Choose Your Style'}
+        </h2>
+        {isLanding && (
+          <p className="text-muted-foreground text-base max-w-lg mx-auto">
+            Select an effect first, then upload your track
+          </p>
+        )}
+        {!isLanding && (
+          <p className="text-muted-foreground">
+            Processing: <span className="text-foreground font-mono text-sm">{fileName}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
         {modes.map((mode) => {
           const Icon = mode.icon;
           return (
