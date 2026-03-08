@@ -414,6 +414,8 @@ export class AudioEngine {
   private chainNodes: AudioNode[] = [];
   private noiseSource: AudioBufferSourceNode | null = null;
   private lfoNode: OscillatorNode | null = null;
+  private chainMode: PlaybackMode = null; // Track which mode the chain was built for
+  private seekDebounce: ReturnType<typeof setTimeout> | null = null;
 
   private params: ModeParams = JSON.parse(JSON.stringify(defaultParams));
 
@@ -546,10 +548,18 @@ export class AudioEngine {
       await this.ctx.resume();
     }
     
-    this.stopSource();
-    this.isPlaying = false;
-    this.buildChain();
+    // Only rebuild chain if mode changed or chain doesn't exist
+    const needsChainRebuild = this.chainMode !== this.currentMode || !this.analyser || !this.gainNode;
+    
+    // Smoothly stop current source (crossfade out)
+    this.stopSourceSmooth();
+    
+    if (needsChainRebuild) {
+      this.buildChain();
+      this.chainMode = this.currentMode;
+    }
 
+    // Create and start new source
     this.sourceNode = this.ctx.createBufferSource();
     this.sourceNode.buffer = this.audioBuffer;
 
@@ -567,6 +577,12 @@ export class AudioEngine {
       if (this.isPlaying) { this.isPlaying = false; this.pausedAt = 0; this.emitState(); }
     };
 
+    // Fade in to prevent click
+    if (this.gainNode) {
+      this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+      this.gainNode.gain.linearRampToValueAtTime(0.9, this.ctx.currentTime + 0.015);
+    }
+
     const offset = this.pausedAt * rate;
     this.sourceNode.start(0, Math.min(Math.max(0, offset), this.audioBuffer.duration - 0.01));
     this.startedAt = this.ctx.currentTime;
@@ -578,7 +594,15 @@ export class AudioEngine {
   pause() {
     if (!this.isPlaying) return;
     this.pausedAt = this.getCurrentTime();
-    this.stopSource();
+    // Fade out then stop to prevent click
+    if (this.gainNode && this.ctx) {
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
+      this.gainNode.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.02);
+      // Stop source after fade completes
+      setTimeout(() => this.stopSourceImmediate(), 25);
+    } else {
+      this.stopSourceImmediate();
+    }
     this.isPlaying = false;
     this.emitState();
   }
@@ -586,15 +610,23 @@ export class AudioEngine {
   async seekTo(time: number) {
     const wasPlaying = this.isPlaying;
     const clampedTime = Math.max(0, Math.min(time, this.getDuration()));
-    
-    if (wasPlaying) {
-      this.stopSource();
-      this.isPlaying = false;
-    }
     this.pausedAt = clampedTime;
     
     if (wasPlaying) {
-      await this.play();
+      // Debounce rapid seeks (dragging waveform) — only restart after 50ms of no seeks
+      if (this.seekDebounce) clearTimeout(this.seekDebounce);
+      
+      // Immediately stop current source
+      this.stopSourceSmooth();
+      this.isPlaying = false;
+      
+      this.seekDebounce = setTimeout(async () => {
+        this.seekDebounce = null;
+        await this.play();
+      }, 50);
+      
+      // Update UI immediately
+      this.emitState();
     } else {
       this.emitState();
     }
@@ -611,11 +643,13 @@ export class AudioEngine {
   }
 
   destroy() {
+    if (this.seekDebounce) clearTimeout(this.seekDebounce);
     this.stopSource();
     if (this.rafId) cancelAnimationFrame(this.rafId);
     if (this.ctx) this.ctx.close();
     this.ctx = null;
     this.audioBuffer = null;
+    this.chainMode = null;
   }
 
   private buildChain() {
@@ -958,10 +992,32 @@ export class AudioEngine {
     this.chainNodes = [inputGain, spatial.output];
   }
 
+  /** Stop source immediately — used internally */
   private stopSource() {
     if (this.sourceNode) { try { this.sourceNode.stop(); } catch {} this.sourceNode.disconnect(); this.sourceNode = null; }
     if (this.noiseSource) { try { this.noiseSource.stop(); } catch {} this.noiseSource = null; }
     if (this.lfoNode) { try { this.lfoNode.stop(); } catch {} this.lfoNode = null; }
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+  }
+
+  /** Stop only the source node (not noise/lfo which are part of chain) — for seeking */
+  private stopSourceSmooth() {
+    if (this.sourceNode) {
+      try { this.sourceNode.stop(); } catch {}
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+    // Don't stop noise/lfo — they're part of the persistent chain
+    // Don't cancel RAF — we want UI to keep updating
+  }
+
+  /** Hard stop for pause — stops source after fade completes */
+  private stopSourceImmediate() {
+    if (this.sourceNode) {
+      try { this.sourceNode.stop(); } catch {}
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
   }
 
