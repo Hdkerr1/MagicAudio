@@ -47,6 +47,7 @@ export function useAudioEngine() {
 
   const play = useCallback(() => engineRef.current?.play(), []);
   const pause = useCallback(() => engineRef.current?.pause(), []);
+
   const seekTo = useCallback((t: number) => engineRef.current?.seekTo(t), []);
   const setMode = useCallback((mode: PlaybackMode) => engineRef.current?.setMode(mode), []);
   const togglePlay = useCallback(() => {
