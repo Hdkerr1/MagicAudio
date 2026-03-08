@@ -538,6 +538,8 @@ export class AudioEngine {
   play() {
     if (!this.ctx || !this.audioBuffer) return;
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    
+    // Stop any existing source without changing isPlaying
     this.stopSource();
     this.buildChain();
 
@@ -559,7 +561,7 @@ export class AudioEngine {
     };
 
     const offset = this.pausedAt * rate;
-    this.sourceNode.start(0, Math.min(offset, this.audioBuffer.duration - 0.01));
+    this.sourceNode.start(0, Math.min(Math.max(0, offset), this.audioBuffer.duration - 0.01));
     this.startedAt = this.ctx.currentTime;
     this.isPlaying = true;
     this.startTick();
@@ -567,7 +569,6 @@ export class AudioEngine {
   }
 
   pause() {
-    if (!this.isPlaying) return;
     this.pausedAt = this.getCurrentTime();
     this.stopSource();
     this.isPlaying = false;
@@ -944,7 +945,6 @@ export class AudioEngine {
     if (this.sourceNode) { try { this.sourceNode.stop(); } catch {} this.sourceNode.disconnect(); this.sourceNode = null; }
     if (this.noiseSource) { try { this.noiseSource.stop(); } catch {} this.noiseSource = null; }
     if (this.lfoNode) { try { this.lfoNode.stop(); } catch {} this.lfoNode = null; }
-    this.isPlaying = false;
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
   }
 
