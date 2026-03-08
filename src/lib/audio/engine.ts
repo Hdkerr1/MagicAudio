@@ -414,8 +414,9 @@ export class AudioEngine {
   private chainNodes: AudioNode[] = [];
   private noiseSource: AudioBufferSourceNode | null = null;
   private lfoNode: OscillatorNode | null = null;
-  private chainMode: PlaybackMode = null; // Track which mode the chain was built for
+  private chainMode: PlaybackMode = null;
   private seekDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _bypassed = false;
 
   private params: ModeParams = JSON.parse(JSON.stringify(defaultParams));
 
