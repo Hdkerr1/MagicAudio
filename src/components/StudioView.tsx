@@ -71,8 +71,6 @@ const StudioView = ({
         )}
       </header>
 
-      {/* Main content: visualizer + params side by side on larger screens */}
-      </div>
 
       {/* Main content: visualizer + params side by side on larger screens */}
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 px-4 md:px-6">
