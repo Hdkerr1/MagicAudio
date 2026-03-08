@@ -82,13 +82,41 @@ const Index = () => {
     }
   }, [exportAudio, fileName, state.mode]);
 
+  // Demo track handler: fetch the file, load it, then show mode selection for it
+  const handleDemoSelect = useCallback(async (demoUrl: string, demoName: string) => {
+    try {
+      const response = await fetch(demoUrl);
+      const blob = await response.blob();
+      const file = new File([blob], demoName + '.mp3', { type: 'audio/mpeg' });
+      await loadFile(file);
+      setStep('select-mode');
+      // Mark that we have a demo loaded by setting the fileName via loadFile
+    } catch {
+      toast.error('Failed to load demo track');
+    }
+  }, [loadFile]);
+
   // Step 1: Choose mode
   if (step === 'select-mode') {
     return (
       <ModeSelector
-        fileName=""
-        onModeSelect={handleModeSelect}
+        fileName={isLoaded ? fileName : ''}
+        onModeSelect={(mode) => {
+          if (isLoaded) {
+            // File already loaded (demo), go straight to processing
+            setSelectedMode(mode);
+            setMode(mode);
+            setStep('processing');
+            timerRef.current = setTimeout(() => {
+              setStep('studio');
+              setTimeout(() => play(), 100);
+            }, 3000);
+          } else {
+            handleModeSelect(mode);
+          }
+        }}
         onBack={() => {}}
+        onDemoSelect={handleDemoSelect}
       />
     );
   }
