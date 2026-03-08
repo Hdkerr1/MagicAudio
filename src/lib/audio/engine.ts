@@ -874,14 +874,14 @@ export class AudioEngine {
     consoleSat.curve = createSaturationCurve(0.06) as Float32Array<ArrayBuffer>;
     consoleSat.oversample = '4x';
 
-    // === Transparent Limiter ===
+    // === Transparent Limiter — ceiling only, no squashing ===
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -1.0; limiter.knee.value = 0;
-    limiter.ratio.value = 20; limiter.attack.value = 0.0002;
-    limiter.release.value = 0.035;
+    limiter.threshold.value = -2.0; limiter.knee.value = 3;
+    limiter.ratio.value = 10; limiter.attack.value = 0.001;
+    limiter.release.value = 0.05;
 
     const masterOutput = ctx.createGain();
-    masterOutput.gain.value = 0.94;
+    masterOutput.gain.value = 1.05; // Slightly hot — let limiter catch peaks
 
     // === Routing ===
     // Source → Subtractive EQ
