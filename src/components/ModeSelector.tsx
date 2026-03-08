@@ -1,11 +1,19 @@
-import { Waves, Volume2, Radio, Music } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
+import { useState } from 'react';
+
+export const demoTracks = [
+  { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
+  { id: 'mama', name: 'Mama Ma (Instrumental)', artist: 'SXLLX', file: '/demo/SXLLX_-_MAMA_MA_INSTRUMENTAL.mp3' },
+  { id: 'rideit', name: 'Ride It (Remix)', artist: 'Jay Sean', file: '/demo/Jay_Sean_-_Ride_It_Remix.mp3' },
+] as const;
 
 interface ModeSelectorProps {
   fileName: string;
   onModeSelect: (mode: ProcessingMode) => void;
   onBack: () => void;
+  onDemoSelect?: (demoUrl: string, demoName: string) => void;
 }
 
 const modes = [
