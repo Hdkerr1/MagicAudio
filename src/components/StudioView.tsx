@@ -18,6 +18,7 @@ interface StudioViewProps {
   params: ModeParams;
   fileName: string;
   isExporting: boolean;
+  bpm: number | null;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
@@ -29,7 +30,7 @@ interface StudioViewProps {
 }
 
 const StudioView = ({
-  state, params, fileName, isExporting,
+  state, params, fileName, isExporting, bpm,
   onTogglePlay, onSeek, onParamChange,
   onExport, onReset, onBackToModes, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
