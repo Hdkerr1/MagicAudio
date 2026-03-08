@@ -10,13 +10,13 @@ interface ProcessingScreenProps {
 
 const modeLabels: Record<ProcessingMode, string> = {
   'slowed-reverb': 'Slowed + Reverb',
-  'hard-bass': 'Hard Bass',
+  'remix': 'Remix',
   'lofi': 'Lo-Fi',
 };
 
 const modeColors: Record<ProcessingMode, string> = {
   'slowed-reverb': 'stroke-primary',
-  'hard-bass': 'stroke-accent',
+  'remix': 'stroke-accent',
   'lofi': 'stroke-glow-warm',
 };
 
