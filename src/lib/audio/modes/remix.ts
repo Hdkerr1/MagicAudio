@@ -190,15 +190,15 @@ export async function processRemix(
   // === STAGE 3: Gentle Additive EQ (tonal sweetening — MAX 2dB) ===
   onProgress({ stage: 'Tonal sweetening...', percent: 30 });
 
-  // 3a. Sub-bass foundation — only on tracks that need it
+  // 3a. Sub-bass foundation
   const subWarmth = offlineCtx.createBiquadFilter();
-  subWarmth.type = 'lowshelf'; subWarmth.frequency.value = 60;
-  subWarmth.gain.value = isBassHeavy ? 0 : 1.5; // NO boost on already bassy tracks
+  subWarmth.type = 'lowshelf'; subWarmth.frequency.value = 80;
+  subWarmth.gain.value = isBassHeavy ? 1 : 4; // Real bass boost
 
-  // 3b. Kick/bass body — gentle
+  // 3b. Kick/bass body
   const kickBody = offlineCtx.createBiquadFilter();
-  kickBody.type = 'peaking'; kickBody.frequency.value = 80;
-  kickBody.gain.value = isBassHeavy ? 0 : 1; kickBody.Q.value = 1.5;
+  kickBody.type = 'peaking'; kickBody.frequency.value = 100;
+  kickBody.gain.value = isBassHeavy ? 1 : 3; kickBody.Q.value = 1.2;
 
   // 3c. Vocal/instrument presence — the "money" frequency
   const presenceLift = offlineCtx.createBiquadFilter();
