@@ -67,23 +67,29 @@ const StudioView = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* A/B Bypass Toggle */}
-          <button
-            onClick={onToggleBypass}
-            className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all text-sm font-semibold ${
-              bypassed
-                ? 'border-muted-foreground/40 bg-muted/30 text-muted-foreground'
-                : 'border-primary/40 bg-primary/15 text-primary'
-            }`}
-            title={bypassed ? 'Listening to original — click for processed' : 'Listening to processed — click for original'}
-          >
-            {bypassed ? (
-              <ToggleLeft className="w-4 h-4" />
-            ) : (
-              <ToggleRight className="w-4 h-4" />
-            )}
-            {bypassed ? 'Original' : 'Processed'}
-          </button>
+          {/* A/B Toggle — two-button pill */}
+          <div className="flex rounded-full border border-border/50 overflow-hidden">
+            <button
+              onClick={() => { if (!bypassed) onToggleBypass(); }}
+              className={`px-3 py-1.5 text-sm font-semibold transition-all duration-200 ${
+                bypassed
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Original
+            </button>
+            <button
+              onClick={() => { if (bypassed) onToggleBypass(); }}
+              className={`px-3 py-1.5 text-sm font-semibold transition-all duration-200 ${
+                !bypassed
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Processed
+            </button>
+          </div>
           {bpm && (
             <div className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border/50 bg-secondary/30">
               <span className="text-xs font-mono text-muted-foreground">♪</span>
