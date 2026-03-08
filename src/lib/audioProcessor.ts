@@ -157,7 +157,7 @@ async function processHardBass(
 
   // Waveshaper for tape saturation on bass
   const saturator = offlineCtx.createWaveShaper();
-  saturator.curve = createSaturationCurve(0.6);
+  saturator.curve = createSaturationCurve(0.6) as Float32Array<ArrayBuffer>;
   saturator.oversample = '4x';
 
   // Soft clipper for final limiting
