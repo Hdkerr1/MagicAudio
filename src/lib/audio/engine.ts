@@ -542,39 +542,68 @@ export class AudioEngine {
   }
 
   play() {
-    if (!this.ctx || !this.audioBuffer) return;
-    if (this.ctx.state === 'suspended') this.ctx.resume();
-    
-    // Stop any existing source without changing isPlaying
-    this.stopSource();
-    this.buildChain();
+    if (!this.ctx || !this.audioBuffer || this.busy) return;
+    this.busy = true;
+    try {
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      
+      // Stop existing source
+      this.stopSource();
+      this.isPlaying = false;
+      
+      // Only rebuild chain if needed (mode change or first play)
+      if (!this.chainBuilt) {
+        this.buildChain();
+        this.chainBuilt = true;
+      } else {
+        // Reconnect analyser → gain → destination (chain nodes stay)
+        if (this.analyser && this.gainNode) {
+          try { this.analyser.disconnect(); } catch {}
+          try { this.gainNode.disconnect(); } catch {}
+          const lastChain = this.chainNodes.length > 0 ? this.chainNodes[this.chainNodes.length - 1] : null;
+          if (lastChain) lastChain.connect(this.analyser);
+          this.analyser.connect(this.gainNode);
+          this.gainNode.connect(this.ctx.destination);
+        } else {
+          this.buildChain();
+          this.chainBuilt = true;
+        }
+      }
 
-    this.sourceNode = this.ctx.createBufferSource();
-    this.sourceNode.buffer = this.audioBuffer;
+      this.sourceNode = this.ctx.createBufferSource();
+      this.sourceNode.buffer = this.audioBuffer;
 
-    let rate = 1;
-    if (this.currentMode === 'slowed-reverb') {
-      rate = this.params['slowed-reverb'].speed;
-    } else if (this.currentMode === 'lofi') {
-      rate = this.params['lofi'].speed;
+      let rate = 1;
+      if (this.currentMode === 'slowed-reverb') {
+        rate = this.params['slowed-reverb'].speed;
+      } else if (this.currentMode === 'lofi') {
+        rate = this.params['lofi'].speed;
+      }
+      this.sourceNode.playbackRate.value = rate;
+
+      const firstNode = this.chainNodes.length > 0 ? this.chainNodes[0] : this.analyser!;
+      this.sourceNode.connect(firstNode);
+      this.sourceNode.onended = () => {
+        if (this.isPlaying) { this.isPlaying = false; this.pausedAt = 0; this.emitState(); }
+      };
+
+      const offset = this.pausedAt * rate;
+      this.sourceNode.start(0, Math.min(Math.max(0, offset), this.audioBuffer.duration - 0.01));
+      this.startedAt = this.ctx.currentTime;
+      this.isPlaying = true;
+      this.startTick();
+      this.emitState();
+    } finally {
+      this.busy = false;
     }
-    this.sourceNode.playbackRate.value = rate;
-
-    const firstNode = this.chainNodes.length > 0 ? this.chainNodes[0] : this.analyser!;
-    this.sourceNode.connect(firstNode);
-    this.sourceNode.onended = () => {
-      if (this.isPlaying) { this.isPlaying = false; this.pausedAt = 0; this.emitState(); }
-    };
-
-    const offset = this.pausedAt * rate;
-    this.sourceNode.start(0, Math.min(Math.max(0, offset), this.audioBuffer.duration - 0.01));
-    this.startedAt = this.ctx.currentTime;
-    this.isPlaying = true;
-    this.startTick();
-    this.emitState();
   }
 
   pause() {
+    if (this.busy) return;
+    if (!this.isPlaying) {
+      this.emitState();
+      return;
+    }
     this.pausedAt = this.getCurrentTime();
     this.stopSource();
     this.isPlaying = false;
@@ -582,11 +611,21 @@ export class AudioEngine {
   }
 
   seekTo(time: number) {
+    if (this.busy) return;
     const wasPlaying = this.isPlaying;
-    if (wasPlaying) this.stopSource();
-    this.pausedAt = Math.max(0, Math.min(time, this.getDuration()));
-    if (wasPlaying) this.play();
-    else this.emitState();
+    const clampedTime = Math.max(0, Math.min(time, this.getDuration()));
+    
+    if (wasPlaying) {
+      this.stopSource();
+      this.isPlaying = false;
+    }
+    this.pausedAt = clampedTime;
+    
+    if (wasPlaying) {
+      this.play();
+    } else {
+      this.emitState();
+    }
   }
 
   async exportProcessed(): Promise<Blob> {
