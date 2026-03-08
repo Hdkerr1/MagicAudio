@@ -11,7 +11,7 @@ const Index = () => {
   const {
     state, params, isLoaded, fileName, isExporting, analysis, bypassed,
     loadFile, togglePlay, seekTo, setMode, getAnalyser, getAudioBuffer,
-    updateParam, exportAudio, reset, play, pause, toggleBypass,
+    updateParam, exportAudio, reset, play, pause, toggleBypass, setBypassValue,
   } = useAudioEngine();
 
   const [step, setStep] = useState<AppStep>('select-mode');
@@ -119,6 +119,7 @@ const Index = () => {
       onReset={handleReset}
       onBackToModes={handleBackToModesFromStudio}
       onToggleBypass={toggleBypass}
+      onSetBypass={setBypassValue}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />
