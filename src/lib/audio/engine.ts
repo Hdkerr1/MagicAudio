@@ -6,15 +6,15 @@ import { createSaturationCurve, createSoftClipCurve } from './dsp-utils';
 export type PlaybackMode = 'slowed-reverb' | 'remix' | 'lofi' | null;
 
 export interface ModeParams {
-  'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number };
-  'remix': { bass: number; presence: number; punch: number; hall: number };
-  'lofi': { warmth: number; crackle: number; wobble: number; speed: number };
+  'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number; spatial: number };
+  'remix': { bass: number; presence: number; punch: number; hall: number; stereoWidth: number; spatial: number };
+  'lofi': { warmth: number; crackle: number; wobble: number; speed: number; spatial: number };
 }
 
 export const defaultParams: ModeParams = {
-  'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4 },
-  'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4 },
-  'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88 },
+  'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4, spatial: 0.5 },
+  'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4, stereoWidth: 0.6, spatial: 0.5 },
+  'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88, spatial: 0.4 },
 };
 
 export interface EngineState {
