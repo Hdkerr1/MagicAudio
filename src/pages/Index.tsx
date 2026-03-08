@@ -234,7 +234,7 @@ function UploadForMode({
 }
 
 // === Processing/buffering screen ===
-function BufferingScreen({ mode, fileName }: { mode: ProcessingMode; fileName: string }) {
+function BufferingScreen({ mode, fileName, bpm }: { mode: ProcessingMode; fileName: string; bpm?: number }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
