@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface WaveformProps {
   getAudioBuffer: () => AudioBuffer | null;
@@ -36,6 +36,7 @@ const Waveform = ({ getAudioBuffer, currentTime, duration, onSeek, accentColor }
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const peaksRef = useRef<number[]>([]);
   const bufferIdRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
 
   // Extract peaks when buffer changes
   const buffer = getAudioBuffer();
@@ -117,17 +118,37 @@ const Waveform = ({ getAudioBuffer, currentTime, duration, onSeek, accentColor }
     }
   }, [progress, accentColor, duration]);
 
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const seekFromEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas || duration <= 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'clientX' in e ? e.clientX : 0;
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     onSeek(pct * duration);
   }, [duration, onSeek]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    isDraggingRef.current = true;
+    seekFromEvent(e);
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      seekFromEvent(ev);
+    };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  }, [seekFromEvent]);
 
   return (
     <canvas
       ref={canvasRef}
       className="w-full h-16 cursor-pointer rounded-lg"
-      onClick={handleClick}
+      onMouseDown={handleMouseDown}
     />
   );
 };

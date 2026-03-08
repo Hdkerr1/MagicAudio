@@ -45,15 +45,15 @@ export function useAudioEngine() {
     }
   }, []);
 
-  const play = useCallback(() => engineRef.current?.play(), []);
+  const play = useCallback(async () => { await engineRef.current?.play(); }, []);
   const pause = useCallback(() => engineRef.current?.pause(), []);
 
   const seekTo = useCallback((t: number) => engineRef.current?.seekTo(t), []);
   const setMode = useCallback((mode: PlaybackMode) => engineRef.current?.setMode(mode), []);
-  const togglePlay = useCallback(() => {
+  const togglePlay = useCallback(async () => {
     if (!engineRef.current) return;
     if (engineRef.current.getIsPlaying()) engineRef.current.pause();
-    else engineRef.current.play();
+    else await engineRef.current.play();
   }, []);
   const getAnalyser = useCallback(() => engineRef.current?.getAnalyser() ?? null, []);
   const getAudioBuffer = useCallback(() => engineRef.current?.getAudioBuffer() ?? null, []);
