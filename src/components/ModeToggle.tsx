@@ -15,27 +15,24 @@ const modes = [
     glowClass: 'glow-primary',
     activeClass: 'bg-primary/15 border-primary/50 text-primary',
     hoverClass: 'hover:border-primary/30 hover:text-primary/80',
-    accentVar: 'primary',
   },
   {
-    id: 'hard-bass' as PlaybackMode,
-    label: 'Hard Bass',
-    shortLabel: 'Bass',
+    id: 'remix' as PlaybackMode,
+    label: 'Remix',
+    shortLabel: 'Remix',
     icon: Volume2,
     glowClass: 'glow-accent',
     activeClass: 'bg-accent/15 border-accent/50 text-accent',
     hoverClass: 'hover:border-accent/30 hover:text-accent/80',
-    accentVar: 'accent',
   },
   {
     id: 'lofi' as PlaybackMode,
-    label: 'Vintage Lo-Fi',
+    label: 'Slowed Lo-Fi',
     shortLabel: 'Lo-Fi',
     icon: Radio,
     glowClass: 'glow-warm',
     activeClass: 'bg-glow-warm/15 border-glow-warm/50 text-glow-warm',
     hoverClass: 'hover:border-glow-warm/30 hover:text-glow-warm/80',
-    accentVar: 'warm',
   },
 ] as const;
 
@@ -76,7 +73,7 @@ export default ModeToggle;
 export function getModeAccentColor(mode: PlaybackMode): string {
   switch (mode) {
     case 'slowed-reverb': return '270, 95%, 60%';
-    case 'hard-bass': return '185, 100%, 50%';
+    case 'remix': return '185, 100%, 50%';
     case 'lofi': return '30, 100%, 55%';
     default: return '270, 95%, 60%';
   }
