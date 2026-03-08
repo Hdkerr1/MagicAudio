@@ -643,11 +643,13 @@ export class AudioEngine {
   }
 
   destroy() {
+    if (this.seekDebounce) clearTimeout(this.seekDebounce);
     this.stopSource();
     if (this.rafId) cancelAnimationFrame(this.rafId);
     if (this.ctx) this.ctx.close();
     this.ctx = null;
     this.audioBuffer = null;
+    this.chainMode = null;
   }
 
   private buildChain() {
