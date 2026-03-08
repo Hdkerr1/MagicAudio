@@ -27,6 +27,7 @@ interface StudioViewProps {
   onReset: () => void;
   onBackToModes: () => void;
   onToggleBypass: () => void;
+  onSetBypass: (value: boolean) => void;
   getAnalyser: () => AnalyserNode | null;
   getAudioBuffer: () => AudioBuffer | null;
 }
@@ -34,7 +35,7 @@ interface StudioViewProps {
 const StudioView = ({
   state, params, fileName, isExporting, bpm, bypassed,
   onTogglePlay, onSeek, onParamChange,
-  onExport, onReset, onBackToModes, onToggleBypass, getAnalyser, getAudioBuffer,
+  onExport, onReset, onBackToModes, onToggleBypass, onSetBypass, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
   const currentMode = state.mode ? modeInfo[state.mode] : null;
