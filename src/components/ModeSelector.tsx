@@ -11,8 +11,8 @@ const modes = [
   {
     id: 'slowed-reverb' as ProcessingMode,
     title: 'Slowed + Reverb',
-    subtitle: 'Valhalla VintageVerb Emulation',
-    description: 'Dreamy, slowed-down atmosphere with lush algorithmic reverb and tempo reduction.',
+    subtitle: 'Dreamy Reverb Engine',
+    description: 'Slow down the track with lush algorithmic reverb, creating a dreamy, atmospheric vibe.',
     icon: Waves,
     glowClass: 'glow-primary',
     borderClass: 'hover:border-primary/50',
@@ -23,7 +23,7 @@ const modes = [
     id: 'remix' as ProcessingMode,
     title: 'Remix',
     subtitle: 'Premium Remix Engine',
-    description: 'Radio-ready remix with punchy bass, crisp presence, stereo width, and professional mastering.',
+    description: 'Radio-ready remix with punchy bass, crisp presence, and professional mastering quality.',
     icon: Volume2,
     glowClass: 'glow-accent',
     borderClass: 'hover:border-accent/50',
@@ -32,9 +32,9 @@ const modes = [
   },
   {
     id: 'lofi' as ProcessingMode,
-    title: 'Lo-Fi',
-    subtitle: 'RC-20 Retro Color Emulation',
-    description: 'Vinyl crackle, wow & flutter, and vintage bandpass filtering for authentic lo-fi warmth.',
+    title: 'Slowed Lo-Fi',
+    subtitle: 'Vintage Tape Engine',
+    description: 'Slowed down with warm vinyl texture, gentle tape wobble, and nostalgic lo-fi character.',
     icon: Radio,
     glowClass: 'glow-warm',
     borderClass: 'hover:border-glow-warm/50',
@@ -71,7 +71,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
               className={`
                 group relative p-6 rounded-2xl border border-border bg-gradient-card
                 transition-all duration-300 text-left
-                hover:scale-[1.03] hover:${mode.glowClass} ${mode.borderClass}
+                hover:scale-[1.03] ${mode.borderClass}
               `}
             >
               <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit mb-4`}>
