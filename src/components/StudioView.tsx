@@ -1,11 +1,17 @@
-import { Music } from 'lucide-react';
-import ModeToggle, { getModeAccentColor } from './ModeToggle';
+import { Music, ArrowLeft, Waves, Volume2, Radio } from 'lucide-react';
+import { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
 import ParamSliders from './ParamSliders';
 import Waveform from './Waveform';
 import type { PlaybackMode, ModeParams } from '@/lib/audio/engine';
 import type { EngineState } from '@/lib/audio/engine';
+
+const modeInfo: Record<string, { label: string; icon: typeof Waves; colorClass: string; bgClass: string }> = {
+  'slowed-reverb': { label: 'Slowed + Reverb', icon: Waves, colorClass: 'text-primary', bgClass: 'bg-primary/15 border-primary/40' },
+  'remix': { label: 'Remix', icon: Volume2, colorClass: 'text-accent', bgClass: 'bg-accent/15 border-accent/40' },
+  'lofi': { label: 'Slowed Lo-Fi', icon: Radio, colorClass: 'text-glow-warm', bgClass: 'bg-glow-warm/15 border-glow-warm/40' },
+};
 
 interface StudioViewProps {
   state: EngineState;
@@ -14,10 +20,10 @@ interface StudioViewProps {
   isExporting: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
-  onModeChange: (mode: PlaybackMode) => void;
   onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
   onExport: () => void;
   onReset: () => void;
+  onBackToModes: () => void;
   getAnalyser: () => AnalyserNode | null;
   getAudioBuffer: () => AudioBuffer | null;
 }

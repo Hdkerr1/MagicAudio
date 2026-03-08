@@ -51,6 +51,15 @@ const Index = () => {
     setSelectedMode(null);
   }, [reset]);
 
+  // Back to mode selection from studio (keep audio loaded)
+  const handleBackToModesFromStudio = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    // Pause playback but keep the file loaded
+    togglePlay(); // pause if playing
+    setStep('select-mode');
+    setSelectedMode(null);
+  }, [togglePlay]);
+
   const handleBackToModes = useCallback(() => {
     setStep('select-mode');
     setSelectedMode(null);
