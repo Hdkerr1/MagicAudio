@@ -777,7 +777,8 @@ export class AudioEngine {
     // EQ chain
     inputGain.connect(subCut);
     subCut.connect(bassShelf);
-    bassShelf.connect(bodyBoost);
+    bassShelf.connect(subBassBoost);
+    subBassBoost.connect(bodyBoost);
     bodyBoost.connect(mudCut);
     mudCut.connect(presenceBoost);
     presenceBoost.connect(airShelf);
