@@ -19,77 +19,160 @@ function detectBPM(buffer: AudioBuffer): number {
   const data = buffer.getChannelData(0);
   const sampleRate = buffer.sampleRate;
 
-  // 1. Downsample to ~11kHz for speed
-  const dsRate = 11025;
-  const dsFactor = Math.round(sampleRate / dsRate);
+  // 1. Downsample to ~22kHz for better frequency resolution
+  const dsRate = 22050;
+  const dsFactor = Math.max(1, Math.round(sampleRate / dsRate));
   const dsLength = Math.floor(data.length / dsFactor);
   const ds = new Float32Array(dsLength);
+  // Simple low-pass averaging during downsample to reduce aliasing
   for (let i = 0; i < dsLength; i++) {
-    ds[i] = data[i * dsFactor];
+    let sum = 0;
+    for (let j = 0; j < dsFactor; j++) {
+      sum += data[i * dsFactor + j];
+    }
+    ds[i] = sum / dsFactor;
   }
 
-  // 2. Compute energy envelope using short windows
-  const winSize = Math.round(dsRate * 0.02); // 20ms windows
+  // 2. Multi-band filtering — separate bass (kick) and broadband (snare/hats)
+  // Bass band: simple 2nd-order IIR low-pass at ~200Hz
+  const bassFiltered = new Float32Array(dsLength);
+  const midFiltered = new Float32Array(dsLength);
+  {
+    // Low-pass for bass (butterworth-ish, fc=200Hz)
+    const fc = 200 / dsRate;
+    const w0 = 2 * Math.PI * fc;
+    const alpha = Math.sin(w0) / (2 * 0.707);
+    const cosW0 = Math.cos(w0);
+    const b0 = (1 - cosW0) / 2, b1 = 1 - cosW0, b2 = (1 - cosW0) / 2;
+    const a0 = 1 + alpha, a1 = -2 * cosW0, a2 = 1 - alpha;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < dsLength; i++) {
+      const x0 = ds[i];
+      const y0 = (b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+      bassFiltered[i] = y0;
+      midFiltered[i] = x0 - y0; // remainder = mid+high
+      x2 = x1; x1 = x0; y2 = y1; y1 = y0;
+    }
+  }
+
+  // 3. Compute energy envelopes for each band
+  const winSize = Math.round(dsRate * 0.015); // 15ms windows (tighter for transient detection)
   const hopSize = Math.round(winSize / 2);
   const numFrames = Math.floor((dsLength - winSize) / hopSize);
-  const envelope = new Float32Array(numFrames);
+
+  const bassEnv = new Float32Array(numFrames);
+  const midEnv = new Float32Array(numFrames);
 
   for (let f = 0; f < numFrames; f++) {
-    let sum = 0;
+    let bassSum = 0, midSum = 0;
     const start = f * hopSize;
     for (let i = 0; i < winSize; i++) {
-      const s = ds[start + i];
-      sum += s * s;
+      bassSum += bassFiltered[start + i] ** 2;
+      midSum += midFiltered[start + i] ** 2;
     }
-    envelope[f] = Math.sqrt(sum / winSize);
+    bassEnv[f] = Math.sqrt(bassSum / winSize);
+    midEnv[f] = Math.sqrt(midSum / winSize);
   }
 
-  // 3. Onset detection — first-order difference of envelope (half-wave rectified)
-  const onset = new Float32Array(numFrames - 1);
+  // 4. Onset detection — spectral flux style (half-wave rectified difference)
+  const bassOnset = new Float32Array(numFrames - 1);
+  const midOnset = new Float32Array(numFrames - 1);
   for (let i = 1; i < numFrames; i++) {
-    onset[i - 1] = Math.max(0, envelope[i] - envelope[i - 1]);
+    bassOnset[i - 1] = Math.max(0, bassEnv[i] - bassEnv[i - 1]);
+    midOnset[i - 1] = Math.max(0, midEnv[i] - midEnv[i - 1]);
   }
 
-  // 4. Autocorrelation of onset signal to find periodicity
-  // Search range: 60-200 BPM
-  const envelopeRate = dsRate / hopSize; // frames per second
-  const minLag = Math.round(envelopeRate * 60 / 200); // 200 BPM
-  const maxLag = Math.round(envelopeRate * 60 / 60);  // 60 BPM
-  const acLen = onset.length;
+  // 5. Combined weighted onset (bass kicks are strongest tempo indicator)
+  const combined = new Float32Array(numFrames - 1);
+  // Normalize each band
+  let bassMax = 0, midMax = 0;
+  for (let i = 0; i < combined.length; i++) {
+    if (bassOnset[i] > bassMax) bassMax = bassOnset[i];
+    if (midOnset[i] > midMax) midMax = midOnset[i];
+  }
+  bassMax = bassMax || 1; midMax = midMax || 1;
+  for (let i = 0; i < combined.length; i++) {
+    combined[i] = (bassOnset[i] / bassMax) * 0.7 + (midOnset[i] / midMax) * 0.3;
+  }
 
-  let bestLag = minLag;
-  let bestCorr = -Infinity;
+  // 6. Autocorrelation with multi-resolution: coarse scan + fine refinement
+  const envelopeRate = dsRate / hopSize;
+  const minBPM = 60, maxBPM = 200;
+  const minLag = Math.round(envelopeRate * 60 / maxBPM);
+  const maxLag = Math.round(envelopeRate * 60 / minBPM);
 
-  // Use only first ~30 seconds for efficiency
-  const useLen = Math.min(acLen, Math.round(envelopeRate * 30));
+  // Use first ~45 seconds for more data
+  const useLen = Math.min(combined.length, Math.round(envelopeRate * 45));
 
+  // Coarse scan: every lag
+  const corrValues = new Float32Array(maxLag - minLag + 1);
   for (let lag = minLag; lag <= Math.min(maxLag, useLen / 2); lag++) {
     let corr = 0;
-    let count = 0;
     for (let i = 0; i < useLen - lag; i++) {
-      corr += onset[i] * onset[i + lag];
-      count++;
+      corr += combined[i] * combined[i + lag];
     }
-    corr /= count;
+    corr /= (useLen - lag);
+    corrValues[lag - minLag] = corr;
+  }
 
-    // Weight toward common tempos (90-150 BPM) with slight preference
-    const bpmAtLag = envelopeRate * 60 / lag;
-    const tempoWeight = 1 + 0.15 * Math.exp(-Math.pow((bpmAtLag - 120) / 40, 2));
-    corr *= tempoWeight;
+  // 7. Find top 5 peaks in autocorrelation
+  const peaks: { lag: number; corr: number }[] = [];
+  for (let i = 1; i < corrValues.length - 1; i++) {
+    if (corrValues[i] > corrValues[i - 1] && corrValues[i] > corrValues[i + 1]) {
+      peaks.push({ lag: i + minLag, corr: corrValues[i] });
+    }
+  }
+  peaks.sort((a, b) => b.corr - a.corr);
+  const topPeaks = peaks.slice(0, 8);
 
-    if (corr > bestCorr) {
-      bestCorr = corr;
-      bestLag = lag;
+  if (topPeaks.length === 0) return 120; // fallback
+
+  // 8. Score peaks with octave consistency + tempo prior
+  let bestScore = -Infinity;
+  let bestBPM = 120;
+
+  for (const peak of topPeaks) {
+    const bpm = envelopeRate * 60 / peak.lag;
+    let score = peak.corr;
+
+    // Tempo prior: prefer 80-160 BPM range (most music)
+    score *= 1 + 0.2 * Math.exp(-(((bpm - 120) / 50) ** 2));
+
+    // Octave consistency: check if half/double tempo also has a peak
+    const halfLag = peak.lag * 2;
+    const doubleLag = Math.round(peak.lag / 2);
+
+    if (halfLag - minLag >= 0 && halfLag - minLag < corrValues.length) {
+      const halfCorr = corrValues[halfLag - minLag];
+      // If half-tempo peak is stronger, penalize (we're likely detecting double)
+      if (halfCorr > peak.corr * 0.8) {
+        score *= 0.7;
+      }
+      // If half-tempo also exists, boost confidence
+      if (halfCorr > peak.corr * 0.3) {
+        score *= 1.15;
+      }
+    }
+
+    if (doubleLag - minLag >= 0 && doubleLag - minLag < corrValues.length) {
+      const doubleCorr = corrValues[doubleLag - minLag];
+      // If double-tempo is also strong, this is likely the fundamental
+      if (doubleCorr > peak.corr * 0.5) {
+        score *= 1.2;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestBPM = bpm;
     }
   }
 
-  let bpm = envelopeRate * 60 / bestLag;
+  // Normalize to 60-200 range
+  while (bestBPM < 60) bestBPM *= 2;
+  while (bestBPM > 200) bestBPM /= 2;
 
-  // Normalize to 60-200 range (double/halve if outside)
-  while (bpm < 60) bpm *= 2;
-  while (bpm > 200) bpm /= 2;
-
-  return Math.round(bpm);
+  return Math.round(bestBPM);
 }
 
 /**
