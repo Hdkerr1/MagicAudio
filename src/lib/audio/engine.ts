@@ -7,7 +7,7 @@ export type PlaybackMode = 'slowed-reverb' | 'remix' | 'lofi' | null;
 
 export interface ModeParams {
   'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number };
-  'remix': { bass: number; presence: number; punch: number };
+  'remix': { bass: number; presence: number; punch: number; hall: number };
   'lofi': { warmth: number; crackle: number; wobble: number; speed: number };
 }
 
