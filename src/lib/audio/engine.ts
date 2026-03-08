@@ -547,28 +547,9 @@ export class AudioEngine {
     try {
       if (this.ctx.state === 'suspended') this.ctx.resume();
       
-      // Stop existing source
       this.stopSource();
       this.isPlaying = false;
-      
-      // Only rebuild chain if needed (mode change or first play)
-      if (!this.chainBuilt) {
-        this.buildChain();
-        this.chainBuilt = true;
-      } else {
-        // Reconnect analyser → gain → destination (chain nodes stay)
-        if (this.analyser && this.gainNode) {
-          try { this.analyser.disconnect(); } catch {}
-          try { this.gainNode.disconnect(); } catch {}
-          const lastChain = this.chainNodes.length > 0 ? this.chainNodes[this.chainNodes.length - 1] : null;
-          if (lastChain) lastChain.connect(this.analyser);
-          this.analyser.connect(this.gainNode);
-          this.gainNode.connect(this.ctx.destination);
-        } else {
-          this.buildChain();
-          this.chainBuilt = true;
-        }
-      }
+      this.buildChain();
 
       this.sourceNode = this.ctx.createBufferSource();
       this.sourceNode.buffer = this.audioBuffer;
