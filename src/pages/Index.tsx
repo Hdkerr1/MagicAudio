@@ -24,8 +24,18 @@ const Index = () => {
   // Step 1: User picks a mode first
   const handleModeSelect = useCallback((mode: ProcessingMode) => {
     setSelectedMode(mode);
-    setStep('upload');
-  }, []);
+    // If audio is already loaded, skip upload and go straight to processing
+    if (isLoaded) {
+      setMode(mode);
+      setStep('processing');
+      timerRef.current = setTimeout(() => {
+        setStep('studio');
+        setTimeout(() => play(), 100);
+      }, 3000);
+    } else {
+      setStep('upload');
+    }
+  }, [isLoaded, setMode, play]);
 
   // Step 2: User uploads audio → processing starts
   const handleFileSelected = useCallback(async (f: File) => {
