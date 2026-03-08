@@ -1,4 +1,4 @@
-import { Music, ArrowLeft, Waves, Volume2, Radio } from 'lucide-react';
+import { Music, ArrowLeft, Waves, Volume2, Radio, ToggleLeft, ToggleRight } from 'lucide-react';
 import { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
