@@ -1,5 +1,6 @@
 import { Waves, Volume2, Radio, Music } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
+import Logo3D from './Logo3D';
 
 interface ModeSelectorProps {
   fileName: string;
