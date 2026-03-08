@@ -687,11 +687,14 @@ export class AudioEngine {
     this.gainNode = this.ctx.createGain();
     this.gainNode.gain.value = 0.9;
 
-    switch (this.currentMode) {
-      case 'slowed-reverb': this.buildSlowedReverbChain(); break;
-      case 'remix': this.buildRemixChain(); break;
-      case 'lofi': this.buildLoFiChain(); break;
+    if (!this._bypassed) {
+      switch (this.currentMode) {
+        case 'slowed-reverb': this.buildSlowedReverbChain(); break;
+        case 'remix': this.buildRemixChain(); break;
+        case 'lofi': this.buildLoFiChain(); break;
+      }
     }
+    // In bypass mode, chainNodes stays empty → source connects directly to analyser
 
     const lastChain = this.chainNodes.length > 0 ? this.chainNodes[this.chainNodes.length - 1] : null;
     if (lastChain) lastChain.connect(this.analyser);
