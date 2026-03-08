@@ -826,24 +826,24 @@ export class AudioEngine {
     airLift.type = 'highshelf'; airLift.frequency.value = 12000;
     airLift.gain.value = 1;
 
-    // === Glue Compression ===
+    // === Glue Compression — lighter touch ===
     const glueComp = ctx.createDynamicsCompressor();
-    glueComp.threshold.value = -14; glueComp.knee.value = 12;
-    glueComp.ratio.value = 1.8; glueComp.attack.value = 0.012;
-    glueComp.release.value = 0.20;
+    glueComp.threshold.value = -10; glueComp.knee.value = 15;
+    glueComp.ratio.value = 1.5; glueComp.attack.value = 0.015;
+    glueComp.release.value = 0.25;
 
     // Parallel compression — controlled by punch slider
     const parallelComp = ctx.createDynamicsCompressor();
-    parallelComp.threshold.value = -30; parallelComp.knee.value = 6;
-    parallelComp.ratio.value = 5; parallelComp.attack.value = 0.005;
-    parallelComp.release.value = 0.15;
+    parallelComp.threshold.value = -24; parallelComp.knee.value = 8;
+    parallelComp.ratio.value = 3.5; parallelComp.attack.value = 0.008;
+    parallelComp.release.value = 0.18;
 
     const parallelCompGain = ctx.createGain();
-    parallelCompGain.gain.value = p.punch * 0.2; // Much more subtle
+    parallelCompGain.gain.value = p.punch * 0.35;
     this.liveNodes.parallelCompGain = parallelCompGain;
 
     const dryGain = ctx.createGain();
-    dryGain.gain.value = 0.88;
+    dryGain.gain.value = 0.92;
 
     const compMixBus = ctx.createGain();
     compMixBus.gain.value = 1.0;
