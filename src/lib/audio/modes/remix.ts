@@ -110,7 +110,7 @@ export async function processRemix(
   const brightness = analysis?.brightness ?? 0.3;
   const energy = analysis?.energy ?? 0.5;
 
-  // Adaptive parameters — all subtle, professional ranges
+  // Adaptive parameters
   const isBassHeavy = bassRatio > 0.35;
   const isDull = brightness < 0.12;
   const isBright = brightness > 0.25;
@@ -119,7 +119,7 @@ export async function processRemix(
   // Reverb: plate with musical timing
   const beatSec = 60 / bpm;
   const reverbDecay = Math.min(3.5, Math.max(1.5, beatSec * (bpm > 130 ? 3 : 4.5)));
-  const reverbWet = bpm > 140 ? 0.08 : bpm < 90 ? 0.14 : 0.10; // VERY subtle
+  const reverbWet = bpm > 140 ? 0.10 : bpm < 90 ? 0.18 : 0.14; // Slightly more present
 
   // Extend buffer for reverb tail
   const tailSamples = Math.ceil(buffer.sampleRate * reverbDecay);
