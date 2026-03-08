@@ -583,7 +583,7 @@ export class AudioEngine {
     this.emitState();
   }
 
-  seekTo(time: number) {
+  async seekTo(time: number) {
     const wasPlaying = this.isPlaying;
     const clampedTime = Math.max(0, Math.min(time, this.getDuration()));
     
@@ -594,7 +594,7 @@ export class AudioEngine {
     this.pausedAt = clampedTime;
     
     if (wasPlaying) {
-      this.play();
+      await this.play();
     } else {
       this.emitState();
     }
