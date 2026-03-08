@@ -513,16 +513,16 @@ export class AudioEngine {
     if (mode === 'remix' && this.currentMode === 'remix') {
       const p = this.params['remix'];
       if (key === 'bass' && this.liveNodes.bassShelf) {
-        this.liveNodes.bassShelf.gain.setTargetAtTime(Math.min(8, p.bass * 10), this.ctx!.currentTime, 0.05);
+        this.liveNodes.bassShelf.gain.setTargetAtTime(Math.min(2, p.bass * 3), this.ctx!.currentTime, 0.05);
       }
       if (key === 'presence' && this.liveNodes.presenceBoost) {
-        this.liveNodes.presenceBoost.gain.setTargetAtTime(p.presence * 4, this.ctx!.currentTime, 0.05);
+        this.liveNodes.presenceBoost.gain.setTargetAtTime(Math.min(2.5, p.presence * 2.5), this.ctx!.currentTime, 0.05);
       }
       if (key === 'punch' && this.liveNodes.parallelCompGain) {
-        this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.5, this.ctx!.currentTime, 0.05);
+        this.liveNodes.parallelCompGain.gain.setTargetAtTime(p.punch * 0.2, this.ctx!.currentTime, 0.05);
       }
       if (key === 'hall' && this.liveNodes.hallWetGain) {
-        this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.45, this.ctx!.currentTime, 0.05);
+        this.liveNodes.hallWetGain.gain.setTargetAtTime(p.hall * 0.20, this.ctx!.currentTime, 0.05);
       }
       if (key === 'stereoWidth' && this.liveNodes.stereoWidthGain) {
         this.liveNodes.stereoWidthGain.gain.setTargetAtTime(0.5 + p.stereoWidth * 1.0, this.ctx!.currentTime, 0.05);
