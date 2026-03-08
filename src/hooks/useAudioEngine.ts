@@ -69,9 +69,9 @@ export function useAudioEngine() {
   const exportAudio = useCallback(async () => {
     if (!engineRef.current) return null;
     setIsExporting(true);
-    try { return await engineRef.current.exportProcessed(); }
+    try { return await engineRef.current.exportProcessed(analysis ?? undefined); }
     finally { setIsExporting(false); }
-  }, []);
+  }, [analysis]);
 
   const reset = useCallback(() => {
     if (engineRef.current) {
