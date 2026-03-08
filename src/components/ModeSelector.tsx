@@ -52,8 +52,9 @@ const modes = [
   },
 ] as const;
 
-const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => {
+const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
   const isLanding = !fileName;
+  const [showDemos, setShowDemos] = useState(false);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4 py-12">
