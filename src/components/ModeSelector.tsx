@@ -1,5 +1,6 @@
 import { Waves, Volume2, Radio, Music } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
+import Logo3D from './Logo3D';
 
 interface ModeSelectorProps {
   fileName: string;
@@ -57,13 +58,11 @@ const ModeSelector = ({ fileName, onModeSelect, onBack }: ModeSelectorProps) => 
       {/* Header / branding */}
       <div className="relative z-10 text-center mb-12">
         {isLanding && (
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="p-2.5 rounded-xl glass glow-primary">
-              <Music className="w-7 h-7 text-primary" />
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="p-3 rounded-2xl glass glow-primary animate-float">
+              <Music className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold text-gradient-primary tracking-tight">
-              SoundForge
-            </h1>
+            <Logo3D />
           </div>
         )}
         <h2 className={`${isLanding ? 'text-lg md:text-xl' : 'text-3xl'} font-semibold text-foreground mb-2`}>
