@@ -218,20 +218,20 @@ export async function processRemix(
   onProgress({ stage: 'Applying studio compression...', percent: 40 });
 
   const glueComp = offlineCtx.createDynamicsCompressor();
-  glueComp.threshold.value = -14; // Catch only peaks
-  glueComp.knee.value = 12; // Very soft knee for transparency
-  glueComp.ratio.value = 1.8; // Gentle — professional mastering ratio
-  glueComp.attack.value = 0.012; // Let transients through (punch)
-  glueComp.release.value = 0.20; // Musical release
+  glueComp.threshold.value = -10; // Less aggressive
+  glueComp.knee.value = 15;
+  glueComp.ratio.value = 1.5;
+  glueComp.attack.value = 0.015;
+  glueComp.release.value = 0.25;
 
-  // Parallel compression (NY-style) — adds density without killing dynamics
+  // Parallel compression — adds density
   const parallelComp = offlineCtx.createDynamicsCompressor();
-  parallelComp.threshold.value = -30; parallelComp.knee.value = 6;
-  parallelComp.ratio.value = 5; parallelComp.attack.value = 0.005;
-  parallelComp.release.value = 0.15;
+  parallelComp.threshold.value = -24; parallelComp.knee.value = 8;
+  parallelComp.ratio.value = 3.5; parallelComp.attack.value = 0.008;
+  parallelComp.release.value = 0.18;
 
   const parallelGain = offlineCtx.createGain();
-  parallelGain.gain.value = 0.15; // Very low blend — just adds density
+  parallelGain.gain.value = 0.25; // More blend for punch
 
   const dryGain = offlineCtx.createGain();
   dryGain.gain.value = 0.85;
