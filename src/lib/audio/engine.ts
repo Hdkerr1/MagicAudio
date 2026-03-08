@@ -466,9 +466,13 @@ export class AudioEngine {
   setMode(mode: PlaybackMode) {
     const wasPlaying = this.isPlaying;
     const time = this.getCurrentTime();
-    if (wasPlaying) this.stopSource();
+    if (wasPlaying) {
+      this.stopSource();
+      this.isPlaying = false;
+    }
     this.pausedAt = time;
     this.currentMode = mode;
+    this.chainBuilt = false; // Force chain rebuild for new mode
     if (wasPlaying) this.play();
     this.emitState();
   }
