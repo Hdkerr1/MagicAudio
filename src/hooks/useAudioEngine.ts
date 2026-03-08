@@ -35,6 +35,7 @@ export function useAudioEngine() {
     else engineRef.current.play();
   }, []);
   const getAnalyser = useCallback(() => engineRef.current?.getAnalyser() ?? null, []);
+  const getAudioBuffer = useCallback(() => engineRef.current?.getAudioBuffer() ?? null, []);
 
   const updateParam = useCallback(<M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => {
     engineRef.current?.updateParam(mode, key, value);
