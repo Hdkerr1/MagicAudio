@@ -89,7 +89,6 @@ const Index = () => {
         fileName=""
         onModeSelect={handleModeSelect}
         onBack={() => {}}
-        isPlaying={state.isPlaying}
       />
     );
   }
