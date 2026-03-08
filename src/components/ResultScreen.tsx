@@ -43,7 +43,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
     const baseName = originalName.replace(/\.[^.]+$/, '');
     const a = document.createElement('a');
     a.href = audioUrl;
-    a.download = `${baseName}_${mode}.wav`;
+    a.download = `${baseName}_${mode}.mp3`;
     a.click();
   };
 

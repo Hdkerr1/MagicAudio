@@ -73,7 +73,7 @@ const Index = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${baseName}_${state.mode || 'processed'}.wav`;
+      a.download = `${baseName}_${state.mode || 'processed'}.mp3`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Audio exported successfully');
