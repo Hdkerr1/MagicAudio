@@ -687,25 +687,35 @@ export class AudioEngine {
     const inputGain = ctx.createGain();
     inputGain.gain.value = 1.0;
 
-    // Sub rumble cut
+    // Sub rumble cut — lower to preserve more sub content
     const subCut = ctx.createBiquadFilter();
-    subCut.type = 'highpass'; subCut.frequency.value = 28; subCut.Q.value = 0.5;
+    subCut.type = 'highpass'; subCut.frequency.value = 22; subCut.Q.value = 0.4;
 
-    // Bass warmth shelf — deep sub-bass
+    // Deep sub-bass shelf — Waves R-Bass style foundation
     const bassShelf = ctx.createBiquadFilter();
     bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
-    bassShelf.gain.value = p.bass * 8;
+    bassShelf.gain.value = Math.min(8, p.bass * 10); // capped at +8dB per constraint
     this.liveNodes.bassShelf = bassShelf;
 
-    // Deep sub-bass resonance at 45Hz for "felt" bass
+    // Sub-harmonic resonance at 40Hz — the "chest punch" frequency
     const subBassBoost = ctx.createBiquadFilter();
-    subBassBoost.type = 'peaking'; subBassBoost.frequency.value = 45;
-    subBassBoost.gain.value = p.bass * 5; subBassBoost.Q.value = 1.0;
+    subBassBoost.type = 'peaking'; subBassBoost.frequency.value = 40;
+    subBassBoost.gain.value = Math.min(8, p.bass * 7); subBassBoost.Q.value = 0.8;
+
+    // Second sub-harmonic layer at 55Hz — fullness between sub and bass
+    const subBass2 = ctx.createBiquadFilter();
+    subBass2.type = 'peaking'; subBass2.frequency.value = 55;
+    subBass2.gain.value = Math.min(6, p.bass * 4); subBass2.Q.value = 1.0;
+
+    // Kick body thump around 100Hz
+    const kickBody = ctx.createBiquadFilter();
+    kickBody.type = 'peaking'; kickBody.frequency.value = 100;
+    kickBody.gain.value = Math.min(5, p.bass * 3.5); kickBody.Q.value = 1.2;
 
     // Body/instrument enhancement around 200Hz
     const bodyBoost = ctx.createBiquadFilter();
     bodyBoost.type = 'peaking'; bodyBoost.frequency.value = 200;
-    bodyBoost.gain.value = 2; bodyBoost.Q.value = 1.0;
+    bodyBoost.gain.value = 2.5; bodyBoost.Q.value = 1.0;
 
     // Clean up muddy region
     const mudCut = ctx.createBiquadFilter();
@@ -778,7 +788,9 @@ export class AudioEngine {
     inputGain.connect(subCut);
     subCut.connect(bassShelf);
     bassShelf.connect(subBassBoost);
-    subBassBoost.connect(bodyBoost);
+    subBassBoost.connect(subBass2);
+    subBass2.connect(kickBody);
+    kickBody.connect(bodyBoost);
     bodyBoost.connect(mudCut);
     mudCut.connect(presenceBoost);
     presenceBoost.connect(airShelf);
