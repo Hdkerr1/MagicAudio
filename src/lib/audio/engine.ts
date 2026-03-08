@@ -98,6 +98,7 @@ export class AudioEngine {
     bassShelf?: BiquadFilterNode;
     presenceBoost?: BiquadFilterNode;
     parallelCompGain?: GainNode;
+    hallWetGain?: GainNode;
     noiseGain?: GainNode;
     midBoost?: BiquadFilterNode;
     lfoGain?: GainNode;
