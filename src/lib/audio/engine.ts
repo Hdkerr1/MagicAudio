@@ -470,6 +470,7 @@ export class AudioEngine {
 
   getDuration(): number {
     if (!this.audioBuffer) return 0;
+    if (this._bypassed) return this.audioBuffer.duration;
     let rate = 1;
     if (this.currentMode === 'slowed-reverb') rate = this.params['slowed-reverb'].speed;
     else if (this.currentMode === 'lofi') rate = this.params['lofi'].speed;
