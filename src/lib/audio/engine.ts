@@ -803,8 +803,8 @@ export class AudioEngine {
     this.liveNodes.stereoWidthGain = widener.sideGain;
     limiter.connect(widener.input);
 
-    // Depth enhancer for premium feel
-    const depth = buildDepthEnhancer(ctx);
+    // Depth enhancer — skip bass (remix has its own deep bass chain)
+    const depth = buildDepthEnhancer(ctx, true);
     widener.output.connect(depth.input);
 
     // Spatial processing
