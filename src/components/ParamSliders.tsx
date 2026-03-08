@@ -71,7 +71,11 @@ const ParamSliders = ({ mode, params, onParamChange }: ParamSlidersProps) => {
             max={def.max}
             step={def.step}
             value={[currentParams[def.key]]}
-            onValueChange={([v]) => onParamChange(mode as keyof ModeParams, def.key as any, v)}
+            onValueChange={([v]) => {
+              if (mode === 'slowed-reverb') onParamChange('slowed-reverb', def.key as keyof ModeParams['slowed-reverb'], v);
+              else if (mode === 'hard-bass') onParamChange('hard-bass', def.key as keyof ModeParams['hard-bass'], v);
+              else if (mode === 'lofi') onParamChange('lofi', def.key as keyof ModeParams['lofi'], v);
+            }}
             className="w-full"
           />
         </div>
