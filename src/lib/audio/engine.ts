@@ -494,7 +494,7 @@ export class AudioEngine {
     if (mode === 'remix' && this.currentMode === 'remix') {
       const p = this.params['remix'];
       if (key === 'bass' && this.liveNodes.bassShelf) {
-        this.liveNodes.bassShelf.gain.setTargetAtTime(p.bass * 6, this.ctx!.currentTime, 0.05);
+        this.liveNodes.bassShelf.gain.setTargetAtTime(Math.min(8, p.bass * 10), this.ctx!.currentTime, 0.05);
       }
       if (key === 'presence' && this.liveNodes.presenceBoost) {
         this.liveNodes.presenceBoost.gain.setTargetAtTime(p.presence * 4, this.ctx!.currentTime, 0.05);
