@@ -632,14 +632,14 @@ export class AudioEngine {
     }
   }
 
-  async exportProcessed(): Promise<Blob> {
+  async exportProcessed(analysis?: import('./analyze').AudioAnalysis): Promise<Blob> {
     if (!this.audioBuffer) throw new Error('No audio loaded');
     const { processAudio } = await import('./index');
     const mode = this.currentMode || 'slowed-reverb';
     const { audioBufferToWav } = await import('./encode');
     const originalBlob = audioBufferToWav(this.audioBuffer);
     const file = new File([originalBlob], 'export.wav', { type: 'audio/wav' });
-    return processAudio(file, mode, () => {});
+    return processAudio(file, mode, () => {}, analysis);
   }
 
   destroy() {
