@@ -1,11 +1,17 @@
-import { Music } from 'lucide-react';
-import ModeToggle, { getModeAccentColor } from './ModeToggle';
+import { Music, ArrowLeft, Waves, Volume2, Radio } from 'lucide-react';
+import { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
 import ParamSliders from './ParamSliders';
 import Waveform from './Waveform';
 import type { PlaybackMode, ModeParams } from '@/lib/audio/engine';
 import type { EngineState } from '@/lib/audio/engine';
+
+const modeInfo: Record<string, { label: string; icon: typeof Waves; colorClass: string; bgClass: string }> = {
+  'slowed-reverb': { label: 'Slowed + Reverb', icon: Waves, colorClass: 'text-primary', bgClass: 'bg-primary/15 border-primary/40' },
+  'remix': { label: 'Remix', icon: Volume2, colorClass: 'text-accent', bgClass: 'bg-accent/15 border-accent/40' },
+  'lofi': { label: 'Slowed Lo-Fi', icon: Radio, colorClass: 'text-glow-warm', bgClass: 'bg-glow-warm/15 border-glow-warm/40' },
+};
 
 interface StudioViewProps {
   state: EngineState;
@@ -14,20 +20,22 @@ interface StudioViewProps {
   isExporting: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
-  onModeChange: (mode: PlaybackMode) => void;
   onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
   onExport: () => void;
   onReset: () => void;
+  onBackToModes: () => void;
   getAnalyser: () => AnalyserNode | null;
   getAudioBuffer: () => AudioBuffer | null;
 }
 
 const StudioView = ({
   state, params, fileName, isExporting,
-  onTogglePlay, onSeek, onModeChange, onParamChange,
-  onExport, onReset, getAnalyser, getAudioBuffer,
+  onTogglePlay, onSeek, onParamChange,
+  onExport, onReset, onBackToModes, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
+  const currentMode = state.mode ? modeInfo[state.mode] : null;
+  const ModeIcon = currentMode?.icon || Waves;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-hero">
@@ -39,18 +47,30 @@ const StudioView = ({
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-border/30">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-primary/10">
-            <Music className="w-5 h-5 text-primary" />
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBackToModes}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Change Mode</span>
+          </button>
+          <div className="h-5 w-px bg-border/40" />
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Music className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-lg font-bold text-gradient-primary tracking-tight">SoundForge</span>
           </div>
-          <span className="text-lg font-bold text-gradient-primary tracking-tight">SoundForge</span>
         </div>
+        {currentMode && (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${currentMode.bgClass}`}>
+            <ModeIcon className={`w-4 h-4 ${currentMode.colorClass}`} />
+            <span className={`text-sm font-semibold ${currentMode.colorClass}`}>{currentMode.label}</span>
+          </div>
+        )}
       </header>
 
-      {/* Mode selector */}
-      <div className="relative z-10 flex justify-center px-4 py-5">
-        <ModeToggle activeMode={state.mode} onModeChange={onModeChange} />
-      </div>
 
       {/* Main content: visualizer + params side by side on larger screens */}
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 px-4 md:px-6">

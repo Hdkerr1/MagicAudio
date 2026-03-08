@@ -24,8 +24,18 @@ const Index = () => {
   // Step 1: User picks a mode first
   const handleModeSelect = useCallback((mode: ProcessingMode) => {
     setSelectedMode(mode);
-    setStep('upload');
-  }, []);
+    // If audio is already loaded, skip upload and go straight to processing
+    if (isLoaded) {
+      setMode(mode);
+      setStep('processing');
+      timerRef.current = setTimeout(() => {
+        setStep('studio');
+        setTimeout(() => play(), 100);
+      }, 3000);
+    } else {
+      setStep('upload');
+    }
+  }, [isLoaded, setMode, play]);
 
   // Step 2: User uploads audio → processing starts
   const handleFileSelected = useCallback(async (f: File) => {
@@ -50,6 +60,15 @@ const Index = () => {
     setStep('select-mode');
     setSelectedMode(null);
   }, [reset]);
+
+  // Back to mode selection from studio (keep audio loaded)
+  const handleBackToModesFromStudio = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    // Pause if playing
+    if (state.isPlaying) togglePlay();
+    setStep('select-mode');
+    setSelectedMode(null);
+  }, [state.isPlaying, togglePlay]);
 
   const handleBackToModes = useCallback(() => {
     setStep('select-mode');
@@ -97,10 +116,10 @@ const Index = () => {
       isExporting={isExporting}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
-      onModeChange={setMode}
       onParamChange={updateParam}
       onExport={handleExport}
       onReset={handleReset}
+      onBackToModes={handleBackToModesFromStudio}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />
