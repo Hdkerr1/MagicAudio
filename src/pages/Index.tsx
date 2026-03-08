@@ -119,6 +119,7 @@ const Index = () => {
       onReset={handleReset}
       onBackToModes={handleBackToModesFromStudio}
       onToggleBypass={toggleBypass}
+      onSetBypass={setBypassValue}
       getAnalyser={getAnalyser}
       getAudioBuffer={getAudioBuffer}
     />
