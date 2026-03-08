@@ -3,6 +3,7 @@ import ModeToggle, { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
 import ParamSliders from './ParamSliders';
+import Waveform from './Waveform';
 import type { PlaybackMode, ModeParams } from '@/lib/audio/engine';
 import type { EngineState } from '@/lib/audio/engine';
 
@@ -18,12 +19,13 @@ interface StudioViewProps {
   onExport: () => void;
   onReset: () => void;
   getAnalyser: () => AnalyserNode | null;
+  getAudioBuffer: () => AudioBuffer | null;
 }
 
 const StudioView = ({
   state, params, fileName, isExporting,
   onTogglePlay, onSeek, onModeChange, onParamChange,
-  onExport, onReset, getAnalyser,
+  onExport, onReset, getAnalyser, getAudioBuffer,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
 
@@ -75,7 +77,18 @@ const StudioView = ({
 
       {/* Player */}
       <div className="relative z-10 px-4 pb-6 pt-4">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-3">
+          {/* Waveform overview */}
+          <div className="glass rounded-xl p-3">
+            <Waveform
+              getAudioBuffer={getAudioBuffer}
+              currentTime={state.currentTime}
+              duration={state.duration}
+              onSeek={onSeek}
+              accentColor={accentColor}
+            />
+          </div>
+
           <PlayerControls
             isPlaying={state.isPlaying}
             currentTime={state.currentTime}
