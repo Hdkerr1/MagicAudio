@@ -459,11 +459,19 @@ export class AudioEngine {
     const wasPlaying = this.isPlaying;
     const time = this.getCurrentTime();
     if (wasPlaying) {
-      this.stopSource();
+      this.stopSourceSmooth();
       this.isPlaying = false;
     }
     this.pausedAt = time;
-    if (wasPlaying) await this.play();
+    if (wasPlaying) {
+      // Use requestAnimationFrame to avoid blocking the UI thread
+      await new Promise<void>(resolve => {
+        requestAnimationFrame(async () => {
+          await this.play();
+          resolve();
+        });
+      });
+    }
     this.emitState();
   }
   getParams(): ModeParams { return this.params; }
