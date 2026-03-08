@@ -449,6 +449,23 @@ export class AudioEngine {
   getAudioBuffer(): AudioBuffer | null { return this.audioBuffer; }
   getIsPlaying(): boolean { return this.isPlaying; }
   getMode(): PlaybackMode { return this.currentMode; }
+  isBypassed(): boolean { return this._bypassed; }
+
+  async setBypass(bypassed: boolean) {
+    if (this._bypassed === bypassed) return;
+    this._bypassed = bypassed;
+    // Force chain rebuild
+    this.chainMode = '__force_rebuild__' as any;
+    const wasPlaying = this.isPlaying;
+    const time = this.getCurrentTime();
+    if (wasPlaying) {
+      this.stopSource();
+      this.isPlaying = false;
+    }
+    this.pausedAt = time;
+    if (wasPlaying) await this.play();
+    this.emitState();
+  }
   getParams(): ModeParams { return this.params; }
 
   getDuration(): number {
