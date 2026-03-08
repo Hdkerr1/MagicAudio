@@ -33,11 +33,13 @@ export function useAudioEngine() {
       setAnalysis(result);
       const autoParams = autoTuneParams(result);
       setParams(autoParams);
-      // Also push auto params into the engine
-      for (const mode of ['slowed-reverb', 'remix', 'lofi'] as const) {
-        const modeParams = autoParams[mode];
-        for (const [key, value] of Object.entries(modeParams)) {
-          engineRef.current.updateParam(mode, key as any, value as number);
+      // Push auto params into the engine for each mode
+      const engine = engineRef.current;
+      const modes = ['slowed-reverb', 'remix', 'lofi'] as const;
+      for (const m of modes) {
+        const mp = autoParams[m] as Record<string, number>;
+        for (const [k, v] of Object.entries(mp)) {
+          engine.updateParam(m, k as never, v);
         }
       }
     }
