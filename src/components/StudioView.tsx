@@ -2,31 +2,28 @@ import { Music } from 'lucide-react';
 import ModeToggle, { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
-import type { PlaybackMode } from '@/lib/audio/engine';
+import ParamSliders from './ParamSliders';
+import type { PlaybackMode, ModeParams } from '@/lib/audio/engine';
 import type { EngineState } from '@/lib/audio/engine';
 
 interface StudioViewProps {
   state: EngineState;
+  params: ModeParams;
   fileName: string;
   isExporting: boolean;
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onModeChange: (mode: PlaybackMode) => void;
+  onParamChange: <M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) => void;
   onExport: () => void;
   onReset: () => void;
   getAnalyser: () => AnalyserNode | null;
 }
 
 const StudioView = ({
-  state,
-  fileName,
-  isExporting,
-  onTogglePlay,
-  onSeek,
-  onModeChange,
-  onExport,
-  onReset,
-  getAnalyser,
+  state, params, fileName, isExporting,
+  onTogglePlay, onSeek, onModeChange, onParamChange,
+  onExport, onReset, getAnalyser,
 }: StudioViewProps) => {
   const accentColor = getModeAccentColor(state.mode);
 
@@ -49,19 +46,31 @@ const StudioView = ({
       </header>
 
       {/* Mode selector */}
-      <div className="relative z-10 flex justify-center px-4 py-6">
+      <div className="relative z-10 flex justify-center px-4 py-5">
         <ModeToggle activeMode={state.mode} onModeChange={onModeChange} />
       </div>
 
-      {/* Visualizer area */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-3xl h-48 md:h-64 rounded-2xl overflow-hidden glass">
+      {/* Main content: visualizer + params side by side on larger screens */}
+      <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 px-4 md:px-6">
+        {/* Visualizer */}
+        <div className="w-full lg:flex-1 max-w-3xl h-48 md:h-64 lg:h-auto rounded-2xl overflow-hidden glass">
           <Visualizer
             getAnalyser={getAnalyser}
             isPlaying={state.isPlaying}
             accentColor={accentColor}
           />
         </div>
+
+        {/* Parameter sliders */}
+        {state.mode && (
+          <div className="w-full lg:w-72 shrink-0">
+            <ParamSliders
+              mode={state.mode}
+              params={params}
+              onParamChange={onParamChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Player */}
