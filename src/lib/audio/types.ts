@@ -1,4 +1,4 @@
-export type ProcessingMode = 'slowed-reverb' | 'hard-bass' | 'lofi';
+export type ProcessingMode = 'slowed-reverb' | 'remix' | 'lofi';
 
 export interface ProcessingProgress {
   stage: string;

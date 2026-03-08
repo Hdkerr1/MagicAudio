@@ -2,7 +2,26 @@ import { hermiteInterpolate, createSaturationCurve } from '../dsp-utils';
 import type { ProgressCallback } from '../types';
 
 /**
- * Gentle wow & flutter — very subtle pitch instability for vintage character.
+ * Pitch-shift (slow down) the buffer using Hermite interpolation.
+ * rate < 1 = slower & lower pitch.
+ */
+function slowDown(buffer: AudioBuffer, rate: number): AudioBuffer {
+  const newLength = Math.ceil(buffer.length / rate);
+  const ctx = new OfflineAudioContext(buffer.numberOfChannels, newLength, buffer.sampleRate);
+  const result = ctx.createBuffer(buffer.numberOfChannels, newLength, buffer.sampleRate);
+
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const input = buffer.getChannelData(ch);
+    const output = result.getChannelData(ch);
+    for (let i = 0; i < newLength; i++) {
+      output[i] = hermiteInterpolate(input, i * rate);
+    }
+  }
+  return result;
+}
+
+/**
+ * Very gentle wow & flutter for vintage tape feel.
  */
 function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
   const ctx = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
@@ -14,11 +33,9 @@ function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
 
     for (let i = 0; i < buffer.length; i++) {
       const t = i / buffer.sampleRate;
-      // Very subtle modulation — half the previous intensity
-      const wow = Math.sin(2 * Math.PI * 0.35 * t) * 0.0015;
-      const flutter = Math.sin(2 * Math.PI * 5.5 * t) * 0.0004;
-      const drift = Math.sin(2 * Math.PI * 0.07 * t) * 0.0005;
-      const offset = i + (wow + flutter + drift) * buffer.sampleRate;
+      const wow = Math.sin(2 * Math.PI * 0.3 * t) * 0.001;
+      const flutter = Math.sin(2 * Math.PI * 4.5 * t) * 0.0003;
+      const offset = i + (wow + flutter) * buffer.sampleRate;
       output[i] = hermiteInterpolate(input, offset);
     }
   }
@@ -26,7 +43,7 @@ function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
 }
 
 /**
- * Gentle vinyl surface noise — warm and quiet.
+ * Very soft vinyl surface texture — warm and barely audible.
  */
 function createVinylNoise(sampleRate: number, duration: number): AudioBuffer {
   const length = Math.ceil(sampleRate * duration);
@@ -35,19 +52,19 @@ function createVinylNoise(sampleRate: number, duration: number): AudioBuffer {
 
   for (let ch = 0; ch < 2; ch++) {
     const data = noiseBuffer.getChannelData(ch);
-    let prevSample = 0;
+    let prev = 0;
 
     for (let i = 0; i < length; i++) {
-      // Very gentle brownian noise
-      prevSample = (prevSample + (Math.random() * 2 - 1) * 0.02) * 0.995;
-      data[i] = prevSample;
+      // Gentle brownian noise — warm texture
+      prev = (prev + (Math.random() * 2 - 1) * 0.015) * 0.997;
+      data[i] = prev;
 
-      // Occasional subtle crackle — much rarer
-      if (Math.random() < 0.00008) {
-        const burstLen = Math.floor(Math.random() * 4 + 2);
-        const amp = Math.random() * 0.15 + 0.05;
-        for (let j = 0; j < burstLen && i + j < length; j++) {
-          data[i + j] += (Math.random() * 2 - 1) * amp * (1 - j / burstLen);
+      // Very rare, soft crackle
+      if (Math.random() < 0.00004) {
+        const bl = Math.floor(Math.random() * 3 + 2);
+        const amp = Math.random() * 0.08 + 0.03;
+        for (let j = 0; j < bl && i + j < length; j++) {
+          data[i + j] += (Math.random() * 2 - 1) * amp * (1 - j / bl);
         }
       }
     }
@@ -59,11 +76,15 @@ export async function processLoFi(
   buffer: AudioBuffer,
   onProgress: ProgressCallback
 ): Promise<AudioBuffer> {
-  onProgress({ stage: 'Applying tape wow & flutter...', percent: 10 });
+  onProgress({ stage: 'Slowing down for lo-fi vibe...', percent: 8 });
 
-  const wobbledBuffer = applyWowAndFlutter(buffer);
+  // Slow down to 0.88x for dreamy lo-fi character
+  const slowedBuffer = slowDown(buffer, 0.88);
 
-  onProgress({ stage: 'Shaping vintage frequency response...', percent: 30 });
+  onProgress({ stage: 'Applying tape wow & flutter...', percent: 18 });
+  const wobbledBuffer = applyWowAndFlutter(slowedBuffer);
+
+  onProgress({ stage: 'Shaping vintage tone...', percent: 35 });
 
   const offlineCtx = new OfflineAudioContext(
     wobbledBuffer.numberOfChannels,
@@ -73,81 +94,90 @@ export async function processLoFi(
   const source = offlineCtx.createBufferSource();
   source.buffer = wobbledBuffer;
 
-  // === Wide vintage EQ (NOT telephone) ===
+  // === Wide vintage EQ — warm, not narrow ===
   const highPass = offlineCtx.createBiquadFilter();
   highPass.type = 'highpass';
-  highPass.frequency.value = 80;
+  highPass.frequency.value = 60;
   highPass.Q.value = 0.5;
 
   const lowPass = offlineCtx.createBiquadFilter();
   lowPass.type = 'lowpass';
-  lowPass.frequency.value = 12000;
+  lowPass.frequency.value = 13000;
   lowPass.Q.value = 0.5;
 
-  // Gentle HF roll-off for vintage character
-  const lowPass2 = offlineCtx.createBiquadFilter();
-  lowPass2.type = 'lowpass';
-  lowPass2.frequency.value = 10000;
-  lowPass2.Q.value = 0.5;
+  // Gentle high-frequency vintage roll-off
+  const lp2 = offlineCtx.createBiquadFilter();
+  lp2.type = 'lowpass';
+  lp2.frequency.value = 11000;
+  lp2.Q.value = 0.5;
 
-  // Warm mid-range
-  const midBoost = offlineCtx.createBiquadFilter();
-  midBoost.type = 'peaking';
-  midBoost.frequency.value = 800;
-  midBoost.gain.value = 2.5;
-  midBoost.Q.value = 0.8;
+  // Warm low-mid presence
+  const warmth = offlineCtx.createBiquadFilter();
+  warmth.type = 'peaking';
+  warmth.frequency.value = 700;
+  warmth.gain.value = 2;
+  warmth.Q.value = 0.7;
 
-  // Slight high-mid dip (tape head loss character)
-  const hiMidCut = offlineCtx.createBiquadFilter();
-  hiMidCut.type = 'peaking';
-  hiMidCut.frequency.value = 4500;
-  hiMidCut.gain.value = -1.5;
-  hiMidCut.Q.value = 0.8;
+  // Gentle bass warmth
+  const bassWarmth = offlineCtx.createBiquadFilter();
+  bassWarmth.type = 'lowshelf';
+  bassWarmth.frequency.value = 150;
+  bassWarmth.gain.value = 1.5;
 
-  onProgress({ stage: 'Adding vinyl texture & warmth...', percent: 50 });
+  // Subtle high-mid dip (tape character)
+  const hiMidDip = offlineCtx.createBiquadFilter();
+  hiMidDip.type = 'peaking';
+  hiMidDip.frequency.value = 5000;
+  hiMidDip.gain.value = -1;
+  hiMidDip.Q.value = 0.8;
 
-  // Gentle vinyl noise
+  onProgress({ stage: 'Adding vinyl warmth...', percent: 55 });
+
+  // Very subtle vinyl noise
   const noiseBuffer = createVinylNoise(wobbledBuffer.sampleRate, wobbledBuffer.duration);
   const noiseSource = offlineCtx.createBufferSource();
   noiseSource.buffer = noiseBuffer;
   const noiseGain = offlineCtx.createGain();
-  noiseGain.gain.value = 0.012; // Much quieter — was 0.035
+  noiseGain.gain.value = 0.008; // Very quiet
 
-  // Warm noise filtering
+  // Filter noise to be warm
   const noiseLP = offlineCtx.createBiquadFilter();
   noiseLP.type = 'lowpass';
-  noiseLP.frequency.value = 3000;
+  noiseLP.frequency.value = 2500;
   noiseLP.Q.value = 0.5;
   const noiseHP = offlineCtx.createBiquadFilter();
   noiseHP.type = 'highpass';
-  noiseHP.frequency.value = 200;
+  noiseHP.frequency.value = 250;
   noiseHP.Q.value = 0.5;
 
-  // Gentle tape saturation
-  const warmSaturator = offlineCtx.createWaveShaper();
-  warmSaturator.curve = createSaturationCurve(0.2) as Float32Array<ArrayBuffer>;
-  warmSaturator.oversample = '4x';
+  // Very gentle tape saturation — warmth only
+  const tapeSat = offlineCtx.createWaveShaper();
+  tapeSat.curve = createSaturationCurve(0.15) as Float32Array<ArrayBuffer>;
+  tapeSat.oversample = '4x';
+
+  onProgress({ stage: 'Applying vintage compression...', percent: 70 });
 
   // Gentle glue compression
-  const compressor = offlineCtx.createDynamicsCompressor();
-  compressor.threshold.value = -18;
-  compressor.knee.value = 15;
-  compressor.ratio.value = 2;
-  compressor.attack.value = 0.03;
-  compressor.release.value = 0.3;
+  const comp = offlineCtx.createDynamicsCompressor();
+  comp.threshold.value = -15;
+  comp.knee.value = 15;
+  comp.ratio.value = 2;
+  comp.attack.value = 0.025;
+  comp.release.value = 0.25;
 
   const masterGain = offlineCtx.createGain();
-  masterGain.gain.value = 0.92;
+  masterGain.gain.value = 0.93;
 
-  // Signal chain
+  // === Signal chain ===
   source.connect(highPass);
   highPass.connect(lowPass);
-  lowPass.connect(lowPass2);
-  lowPass2.connect(midBoost);
-  midBoost.connect(hiMidCut);
-  hiMidCut.connect(warmSaturator);
-  warmSaturator.connect(compressor);
-  compressor.connect(masterGain);
+  lowPass.connect(lp2);
+  lp2.connect(bassWarmth);
+  bassWarmth.connect(warmth);
+  warmth.connect(hiMidDip);
+  hiMidDip.connect(tapeSat);
+  tapeSat.connect(comp);
+  comp.connect(masterGain);
   masterGain.connect(offlineCtx.destination);
 
   // Noise chain
@@ -159,7 +189,7 @@ export async function processLoFi(
   source.start(0);
   noiseSource.start(0);
 
-  onProgress({ stage: 'Rendering final audio...', percent: 80 });
+  onProgress({ stage: 'Rendering lo-fi audio...', percent: 85 });
   const result = await offlineCtx.startRendering();
   onProgress({ stage: 'Complete', percent: 100 });
   return result;

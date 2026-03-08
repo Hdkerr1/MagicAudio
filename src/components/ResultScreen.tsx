@@ -12,7 +12,7 @@ interface ResultScreenProps {
 
 const modeLabels: Record<ProcessingMode, string> = {
   'slowed-reverb': 'Slowed + Reverb',
-  'hard-bass': 'Hard Bass',
+  'remix': 'Remix',
   'lofi': 'Lo-Fi',
 };
 

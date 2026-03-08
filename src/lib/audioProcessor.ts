@@ -5,7 +5,7 @@ import type { ProcessingMode, ProgressCallback } from './audio/types';
 import { decodeAudioFile } from './audio/decode';
 import { audioBufferToWav } from './audio/encode';
 import { processSlowedReverb } from './audio/modes/slowed-reverb';
-import { processHardBass } from './audio/modes/hard-bass';
+import { processRemix } from './audio/modes/remix';
 import { processLoFi } from './audio/modes/lofi';
 
 export async function processAudio(
@@ -22,8 +22,8 @@ export async function processAudio(
     case 'slowed-reverb':
       processedBuffer = await processSlowedReverb(buffer, onProgress);
       break;
-    case 'hard-bass':
-      processedBuffer = await processHardBass(buffer, onProgress);
+    case 'remix':
+      processedBuffer = await processRemix(buffer, onProgress);
       break;
     case 'lofi':
       processedBuffer = await processLoFi(buffer, onProgress);
