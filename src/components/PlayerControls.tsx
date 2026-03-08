@@ -24,7 +24,7 @@ const formatTime = (t: number) => {
 const modeLabels: Record<string, string> = {
   'slowed-reverb': 'Slowed + Reverb',
   'remix': 'Remix',
-  'lofi': 'Slowed Lo-Fi',
+  'lofi': 'Vintage Lo-Fi',
 };
 
 const PlayerControls = ({

@@ -130,7 +130,7 @@ const Index = () => {
 const modeLabels: Record<ProcessingMode, string> = {
   'slowed-reverb': 'Slowed + Reverb',
   'remix': 'Remix',
-  'lofi': 'Slowed Lo-Fi',
+  'lofi': 'Vintage Lo-Fi',
 };
 
 const modeColors: Record<ProcessingMode, string> = {
