@@ -114,6 +114,7 @@ const Index = () => {
       params={params}
       fileName={fileName}
       isExporting={isExporting}
+      bpm={analysis?.bpm ?? null}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
       onParamChange={updateParam}
