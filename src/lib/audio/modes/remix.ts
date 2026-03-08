@@ -200,15 +200,15 @@ export async function processRemix(
   kickBody.type = 'peaking'; kickBody.frequency.value = 100;
   kickBody.gain.value = isBassHeavy ? 1 : 3; kickBody.Q.value = 1.2;
 
-  // 3c. Vocal/instrument presence — the "money" frequency
+  // 3c. Vocal/instrument presence
   const presenceLift = offlineCtx.createBiquadFilter();
   presenceLift.type = 'peaking'; presenceLift.frequency.value = 2500;
-  presenceLift.gain.value = isDull ? 2 : 1; presenceLift.Q.value = 1.5;
+  presenceLift.gain.value = isDull ? 3.5 : 2; presenceLift.Q.value = 1.5;
 
-  // 3d. Air/sparkle — very gentle high shelf
+  // 3d. Air/sparkle
   const airLift = offlineCtx.createBiquadFilter();
   airLift.type = 'highshelf'; airLift.frequency.value = 12000;
-  airLift.gain.value = isDull ? 1.5 : 0.5; // More air on dull tracks
+  airLift.gain.value = isDull ? 2 : 1;
 
   // === Gain staging: compensate for all the EQ cuts ===
   const eqMakeup = offlineCtx.createGain();
