@@ -691,11 +691,16 @@ export class AudioEngine {
     const subCut = ctx.createBiquadFilter();
     subCut.type = 'highpass'; subCut.frequency.value = 28; subCut.Q.value = 0.5;
 
-    // Bass warmth shelf
+    // Bass warmth shelf — deep sub-bass
     const bassShelf = ctx.createBiquadFilter();
-    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 100;
-    bassShelf.gain.value = p.bass * 6;
+    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
+    bassShelf.gain.value = p.bass * 8;
     this.liveNodes.bassShelf = bassShelf;
+
+    // Deep sub-bass resonance at 45Hz for "felt" bass
+    const subBassBoost = ctx.createBiquadFilter();
+    subBassBoost.type = 'peaking'; subBassBoost.frequency.value = 45;
+    subBassBoost.gain.value = p.bass * 5; subBassBoost.Q.value = 1.0;
 
     // Body/instrument enhancement around 200Hz
     const bodyBoost = ctx.createBiquadFilter();
