@@ -567,7 +567,6 @@ export class AudioEngine {
   }
 
   pause() {
-    if (!this.isPlaying) return;
     this.pausedAt = this.getCurrentTime();
     this.stopSource();
     this.isPlaying = false;
