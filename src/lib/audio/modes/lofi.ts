@@ -2,8 +2,7 @@ import { hermiteInterpolate, createSaturationCurve } from '../dsp-utils';
 import type { ProgressCallback } from '../types';
 
 /**
- * Apply wow & flutter tape modulation with Hermite interpolation.
- * Simulates the pitch instability of a worn cassette player.
+ * Gentle wow & flutter — very subtle pitch instability for vintage character.
  */
 function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
   const ctx = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
@@ -15,10 +14,10 @@ function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
 
     for (let i = 0; i < buffer.length; i++) {
       const t = i / buffer.sampleRate;
-      // Multi-rate modulation for realistic tape character
-      const wow = Math.sin(2 * Math.PI * 0.4 * t) * 0.003;
-      const flutter = Math.sin(2 * Math.PI * 5.5 * t) * 0.0008;
-      const drift = Math.sin(2 * Math.PI * 0.07 * t) * 0.001; // very slow drift
+      // Very subtle modulation — half the previous intensity
+      const wow = Math.sin(2 * Math.PI * 0.35 * t) * 0.0015;
+      const flutter = Math.sin(2 * Math.PI * 5.5 * t) * 0.0004;
+      const drift = Math.sin(2 * Math.PI * 0.07 * t) * 0.0005;
       const offset = i + (wow + flutter + drift) * buffer.sampleRate;
       output[i] = hermiteInterpolate(input, offset);
     }
@@ -27,7 +26,7 @@ function applyWowAndFlutter(buffer: AudioBuffer): AudioBuffer {
 }
 
 /**
- * Generate vinyl crackle noise with realistic pops, clicks and surface noise.
+ * Gentle vinyl surface noise — warm and quiet.
  */
 function createVinylNoise(sampleRate: number, duration: number): AudioBuffer {
   const length = Math.ceil(sampleRate * duration);
@@ -39,25 +38,18 @@ function createVinylNoise(sampleRate: number, duration: number): AudioBuffer {
     let prevSample = 0;
 
     for (let i = 0; i < length; i++) {
-      // Brownian noise (warmer than white noise) for surface texture
-      prevSample = (prevSample + (Math.random() * 2 - 1) * 0.05) * 0.98;
-      let sample = prevSample;
+      // Very gentle brownian noise
+      prevSample = (prevSample + (Math.random() * 2 - 1) * 0.02) * 0.995;
+      data[i] = prevSample;
 
-      // Random crackle — short bursts
-      if (Math.random() < 0.0002) {
-        const burstLen = Math.floor(Math.random() * 8 + 2);
-        const amp = Math.random() * 0.6 + 0.2;
+      // Occasional subtle crackle — much rarer
+      if (Math.random() < 0.00008) {
+        const burstLen = Math.floor(Math.random() * 4 + 2);
+        const amp = Math.random() * 0.15 + 0.05;
         for (let j = 0; j < burstLen && i + j < length; j++) {
           data[i + j] += (Math.random() * 2 - 1) * amp * (1 - j / burstLen);
         }
       }
-
-      // Occasional louder pop
-      if (Math.random() < 0.00005) {
-        sample += (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 0.5 + 0.3);
-      }
-
-      data[i] = sample;
     }
   }
   return noiseBuffer;
@@ -81,68 +73,71 @@ export async function processLoFi(
   const source = offlineCtx.createBufferSource();
   source.buffer = wobbledBuffer;
 
-  // Vintage speaker simulation: roll off lows and highs
+  // === Wide vintage EQ (NOT telephone) ===
   const highPass = offlineCtx.createBiquadFilter();
   highPass.type = 'highpass';
-  highPass.frequency.value = 120;
+  highPass.frequency.value = 80;
   highPass.Q.value = 0.5;
 
   const lowPass = offlineCtx.createBiquadFilter();
   lowPass.type = 'lowpass';
-  lowPass.frequency.value = 9000;
+  lowPass.frequency.value = 12000;
   lowPass.Q.value = 0.5;
 
-  // Second-order roll-off for steeper HF attenuation
+  // Gentle HF roll-off for vintage character
   const lowPass2 = offlineCtx.createBiquadFilter();
   lowPass2.type = 'lowpass';
-  lowPass2.frequency.value = 11000;
-  lowPass2.Q.value = 0.7;
+  lowPass2.frequency.value = 10000;
+  lowPass2.Q.value = 0.5;
 
-  // Warm mid-range presence
+  // Warm mid-range
   const midBoost = offlineCtx.createBiquadFilter();
   midBoost.type = 'peaking';
-  midBoost.frequency.value = 700;
-  midBoost.gain.value = 3.5;
-  midBoost.Q.value = 1.2;
+  midBoost.frequency.value = 800;
+  midBoost.gain.value = 2.5;
+  midBoost.Q.value = 0.8;
 
-  // Slight high-mid dip (tape head loss simulation)
+  // Slight high-mid dip (tape head loss character)
   const hiMidCut = offlineCtx.createBiquadFilter();
   hiMidCut.type = 'peaking';
-  hiMidCut.frequency.value = 4000;
-  hiMidCut.gain.value = -2;
-  hiMidCut.Q.value = 1.0;
+  hiMidCut.frequency.value = 4500;
+  hiMidCut.gain.value = -1.5;
+  hiMidCut.Q.value = 0.8;
 
   onProgress({ stage: 'Adding vinyl texture & warmth...', percent: 50 });
 
-  // Vinyl noise
+  // Gentle vinyl noise
   const noiseBuffer = createVinylNoise(wobbledBuffer.sampleRate, wobbledBuffer.duration);
   const noiseSource = offlineCtx.createBufferSource();
   noiseSource.buffer = noiseBuffer;
   const noiseGain = offlineCtx.createGain();
-  noiseGain.gain.value = 0.035;
+  noiseGain.gain.value = 0.012; // Much quieter — was 0.035
 
-  // Noise filter — roll off harsh highs from noise
+  // Warm noise filtering
   const noiseLP = offlineCtx.createBiquadFilter();
   noiseLP.type = 'lowpass';
-  noiseLP.frequency.value = 5000;
+  noiseLP.frequency.value = 3000;
   noiseLP.Q.value = 0.5;
+  const noiseHP = offlineCtx.createBiquadFilter();
+  noiseHP.type = 'highpass';
+  noiseHP.frequency.value = 200;
+  noiseHP.Q.value = 0.5;
 
-  // Warm tape saturation
+  // Gentle tape saturation
   const warmSaturator = offlineCtx.createWaveShaper();
-  warmSaturator.curve = createSaturationCurve(0.3) as Float32Array<ArrayBuffer>;
+  warmSaturator.curve = createSaturationCurve(0.2) as Float32Array<ArrayBuffer>;
   warmSaturator.oversample = '4x';
 
-  // Gentle compression to glue everything together
+  // Gentle glue compression
   const compressor = offlineCtx.createDynamicsCompressor();
-  compressor.threshold.value = -15;
-  compressor.knee.value = 12;
-  compressor.ratio.value = 2.5;
-  compressor.attack.value = 0.02;
+  compressor.threshold.value = -18;
+  compressor.knee.value = 15;
+  compressor.ratio.value = 2;
+  compressor.attack.value = 0.03;
   compressor.release.value = 0.3;
 
-  // Master gain
   const masterGain = offlineCtx.createGain();
-  masterGain.gain.value = 0.9;
+  masterGain.gain.value = 0.92;
 
   // Signal chain
   source.connect(highPass);
@@ -156,7 +151,8 @@ export async function processLoFi(
   masterGain.connect(offlineCtx.destination);
 
   // Noise chain
-  noiseSource.connect(noiseLP);
+  noiseSource.connect(noiseHP);
+  noiseHP.connect(noiseLP);
   noiseLP.connect(noiseGain);
   noiseGain.connect(offlineCtx.destination);
 
