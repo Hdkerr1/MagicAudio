@@ -754,7 +754,8 @@ export class AudioEngine {
   }
 
   /**
-   * Remix — hall reverb echo + punchy bass + instrument enhancement.
+   * Remix — studio-grade mastering chain matching Hollywood/Bollywood production standards.
+   * Subtractive-first EQ, gentle compression, plate reverb, transparent limiting.
    */
   private buildRemixChain() {
     const ctx = this.ctx!;
@@ -763,148 +764,159 @@ export class AudioEngine {
     const inputGain = ctx.createGain();
     inputGain.gain.value = 1.0;
 
-    // Sub rumble cut — lower to preserve more sub content
-    const subCut = ctx.createBiquadFilter();
-    subCut.type = 'highpass'; subCut.frequency.value = 22; subCut.Q.value = 0.4;
+    // === Subtractive EQ (problem removal) ===
+    const subCut1 = ctx.createBiquadFilter();
+    subCut1.type = 'highpass'; subCut1.frequency.value = 22; subCut1.Q.value = 0.5;
+    const subCut2 = ctx.createBiquadFilter();
+    subCut2.type = 'highpass'; subCut2.frequency.value = 28; subCut2.Q.value = 0.5;
 
-    // Deep sub-bass shelf — Waves R-Bass style foundation
+    // Mud removal 250-400Hz
+    const mudCut = ctx.createBiquadFilter();
+    mudCut.type = 'peaking'; mudCut.frequency.value = 300;
+    mudCut.gain.value = -2.5; mudCut.Q.value = 1.2;
+
+    // Box/honk at 550Hz
+    const boxCut = ctx.createBiquadFilter();
+    boxCut.type = 'peaking'; boxCut.frequency.value = 550;
+    boxCut.gain.value = -1.5; boxCut.Q.value = 2;
+
+    // Harshness at 3.5kHz
+    const harshCut = ctx.createBiquadFilter();
+    harshCut.type = 'peaking'; harshCut.frequency.value = 3500;
+    harshCut.gain.value = -1.5; harshCut.Q.value = 2;
+
+    // Sibilance at 5.5kHz
+    const sibilanceCut = ctx.createBiquadFilter();
+    sibilanceCut.type = 'peaking'; sibilanceCut.frequency.value = 5500;
+    sibilanceCut.gain.value = -1; sibilanceCut.Q.value = 2.5;
+
+    // Ultra-high cut
+    const ultraCut = ctx.createBiquadFilter();
+    ultraCut.type = 'lowpass'; ultraCut.frequency.value = 17500; ultraCut.Q.value = 0.5;
+
+    // === Gentle Additive EQ (max 2dB boosts) ===
+    // Sub-bass foundation — controlled by bass slider
     const bassShelf = ctx.createBiquadFilter();
-    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
-    bassShelf.gain.value = Math.min(8, p.bass * 10); // capped at +8dB per constraint
+    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 60;
+    bassShelf.gain.value = Math.min(2, p.bass * 3); // Max 2dB (was 8dB!)
     this.liveNodes.bassShelf = bassShelf;
 
-    // Sub-harmonic resonance at 40Hz — the "chest punch" frequency
-    const subBassBoost = ctx.createBiquadFilter();
-    subBassBoost.type = 'peaking'; subBassBoost.frequency.value = 40;
-    subBassBoost.gain.value = Math.min(8, p.bass * 7); subBassBoost.Q.value = 0.8;
-
-    // Second sub-harmonic layer at 55Hz — fullness between sub and bass
-    const subBass2 = ctx.createBiquadFilter();
-    subBass2.type = 'peaking'; subBass2.frequency.value = 55;
-    subBass2.gain.value = Math.min(6, p.bass * 4); subBass2.Q.value = 1.0;
-
-    // Kick body thump around 100Hz
-    const kickBody = ctx.createBiquadFilter();
-    kickBody.type = 'peaking'; kickBody.frequency.value = 100;
-    kickBody.gain.value = Math.min(5, p.bass * 3.5); kickBody.Q.value = 1.2;
-
-    // Body/instrument enhancement around 200Hz
-    const bodyBoost = ctx.createBiquadFilter();
-    bodyBoost.type = 'peaking'; bodyBoost.frequency.value = 200;
-    bodyBoost.gain.value = 2.5; bodyBoost.Q.value = 1.0;
-
-    // Clean up muddy region
-    const mudCut = ctx.createBiquadFilter();
-    mudCut.type = 'peaking'; mudCut.frequency.value = 400;
-    mudCut.gain.value = -1.5; mudCut.Q.value = 1.2;
-
-    // Instrument/vocal presence
+    // Presence — controlled by presence slider
     const presenceBoost = ctx.createBiquadFilter();
-    presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 3000;
-    presenceBoost.gain.value = p.presence * 4; presenceBoost.Q.value = 1.0;
+    presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 2500;
+    presenceBoost.gain.value = Math.min(2.5, p.presence * 2.5); // Max 2.5dB
+    presenceBoost.Q.value = 1.5;
     this.liveNodes.presenceBoost = presenceBoost;
 
-    // Air shelf
-    const airShelf = ctx.createBiquadFilter();
-    airShelf.type = 'highshelf'; airShelf.frequency.value = 10000;
-    airShelf.gain.value = 2;
+    // Air sparkle
+    const airLift = ctx.createBiquadFilter();
+    airLift.type = 'highshelf'; airLift.frequency.value = 12000;
+    airLift.gain.value = 1;
 
-    // === Hall Reverb (convolver) ===
+    // === Glue Compression ===
+    const glueComp = ctx.createDynamicsCompressor();
+    glueComp.threshold.value = -14; glueComp.knee.value = 12;
+    glueComp.ratio.value = 1.8; glueComp.attack.value = 0.012;
+    glueComp.release.value = 0.20;
+
+    // Parallel compression — controlled by punch slider
+    const parallelComp = ctx.createDynamicsCompressor();
+    parallelComp.threshold.value = -30; parallelComp.knee.value = 6;
+    parallelComp.ratio.value = 5; parallelComp.attack.value = 0.005;
+    parallelComp.release.value = 0.15;
+
+    const parallelCompGain = ctx.createGain();
+    parallelCompGain.gain.value = p.punch * 0.2; // Much more subtle
+    this.liveNodes.parallelCompGain = parallelCompGain;
+
+    const dryGain = ctx.createGain();
+    dryGain.gain.value = 0.88;
+
+    const compMixBus = ctx.createGain();
+    compMixBus.gain.value = 1.0;
+
+    // === Plate Reverb ===
     const hallConvolver = ctx.createConvolver();
     hallConvolver.buffer = generateHallIR(ctx.sampleRate);
 
-    // Pre-filter: cut lows from reverb send to keep bass clean
     const hallPreHP = ctx.createBiquadFilter();
-    hallPreHP.type = 'highpass'; hallPreHP.frequency.value = 300; hallPreHP.Q.value = 0.5;
-
-    // Post-filter: darken reverb tail for warmth
+    hallPreHP.type = 'highpass'; hallPreHP.frequency.value = 400; hallPreHP.Q.value = 0.5;
+    const hallPreLP = ctx.createBiquadFilter();
+    hallPreLP.type = 'lowpass'; hallPreLP.frequency.value = 6000; hallPreLP.Q.value = 0.5;
     const hallPostLP = ctx.createBiquadFilter();
-    hallPostLP.type = 'lowpass'; hallPostLP.frequency.value = 8000; hallPostLP.Q.value = 0.5;
+    hallPostLP.type = 'lowpass'; hallPostLP.frequency.value = 5000; hallPostLP.Q.value = 0.5;
 
     const hallWetGain = ctx.createGain();
-    hallWetGain.gain.value = p.hall * 0.45;
+    hallWetGain.gain.value = p.hall * 0.20; // Much subtler reverb
     this.liveNodes.hallWetGain = hallWetGain;
 
-    // Dry path
-    const dryGain = ctx.createGain();
-    dryGain.gain.value = 0.75;
+    const reverbDryGain = ctx.createGain();
+    reverbDryGain.gain.value = 1.0;
 
-    // Parallel compression for punch
-    const parallelComp = ctx.createDynamicsCompressor();
-    parallelComp.threshold.value = -30; parallelComp.knee.value = 5;
-    parallelComp.ratio.value = 8; parallelComp.attack.value = 0.002;
-    parallelComp.release.value = 0.1;
+    const reverbMixBus = ctx.createGain();
+    reverbMixBus.gain.value = 1.0;
 
-    const parallelCompGain = ctx.createGain();
-    parallelCompGain.gain.value = p.punch * 0.5;
-    this.liveNodes.parallelCompGain = parallelCompGain;
-
-    const mixBus = ctx.createGain();
-    mixBus.gain.value = 1.0;
-
-    // Master glue compression
-    const masterComp = ctx.createDynamicsCompressor();
-    masterComp.threshold.value = -8; masterComp.knee.value = 10;
-    masterComp.ratio.value = 2.5; masterComp.attack.value = 0.01;
-    masterComp.release.value = 0.2;
-
-    // Gentle console saturation
+    // === Console Saturation (barely audible) ===
     const consoleSat = ctx.createWaveShaper();
-    consoleSat.curve = createSaturationCurve(0.12) as Float32Array<ArrayBuffer>;
+    consoleSat.curve = createSaturationCurve(0.06) as Float32Array<ArrayBuffer>;
     consoleSat.oversample = '4x';
 
-    // Transparent limiter
+    // === Transparent Limiter ===
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -1.5; limiter.knee.value = 0.5;
-    limiter.ratio.value = 20; limiter.attack.value = 0.0005;
-    limiter.release.value = 0.05;
+    limiter.threshold.value = -1.0; limiter.knee.value = 0;
+    limiter.ratio.value = 20; limiter.attack.value = 0.0002;
+    limiter.release.value = 0.035;
+
+    const masterOutput = ctx.createGain();
+    masterOutput.gain.value = 0.94;
 
     // === Routing ===
-    // EQ chain
-    inputGain.connect(subCut);
-    subCut.connect(bassShelf);
-    bassShelf.connect(subBassBoost);
-    subBassBoost.connect(subBass2);
-    subBass2.connect(kickBody);
-    kickBody.connect(bodyBoost);
-    bodyBoost.connect(mudCut);
-    mudCut.connect(presenceBoost);
-    presenceBoost.connect(airShelf);
+    // Source → Subtractive EQ
+    inputGain.connect(subCut1);
+    subCut1.connect(subCut2);
+    subCut2.connect(mudCut);
+    mudCut.connect(boxCut);
+    boxCut.connect(harshCut);
+    harshCut.connect(sibilanceCut);
+    sibilanceCut.connect(ultraCut);
 
-    // Dry path → mix
-    airShelf.connect(dryGain);
-    dryGain.connect(mixBus);
+    // → Additive EQ
+    ultraCut.connect(bassShelf);
+    bassShelf.connect(presenceBoost);
+    presenceBoost.connect(airLift);
 
-    // Hall reverb send → mix
-    airShelf.connect(hallPreHP);
-    hallPreHP.connect(hallConvolver);
+    // → Compression (parallel)
+    airLift.connect(glueComp);
+    glueComp.connect(dryGain);
+    dryGain.connect(compMixBus);
+    glueComp.connect(parallelComp);
+    parallelComp.connect(parallelCompGain);
+    parallelCompGain.connect(compMixBus);
+
+    // → Reverb (send/return)
+    compMixBus.connect(reverbDryGain);
+    reverbDryGain.connect(reverbMixBus);
+    compMixBus.connect(hallPreHP);
+    hallPreHP.connect(hallPreLP);
+    hallPreLP.connect(hallConvolver);
     hallConvolver.connect(hallPostLP);
     hallPostLP.connect(hallWetGain);
-    hallWetGain.connect(mixBus);
+    hallWetGain.connect(reverbMixBus);
 
-    // Parallel compression → mix
-    airShelf.connect(parallelComp);
-    parallelComp.connect(parallelCompGain);
-    parallelCompGain.connect(mixBus);
-
-    // Master chain
-    mixBus.connect(masterComp);
-    masterComp.connect(consoleSat);
+    // → Saturation → Limiter → Output
+    reverbMixBus.connect(consoleSat);
     consoleSat.connect(limiter);
+    limiter.connect(masterOutput);
 
     // Stereo widening
     const widener = buildStereoWidener(ctx, p.stereoWidth);
     this.liveNodes.stereoWidthGain = widener.sideGain;
-    limiter.connect(widener.input);
-
-    // Depth enhancer — skip bass (remix has its own deep bass chain)
-    const depth = buildDepthEnhancer(ctx, true);
-    widener.output.connect(depth.input);
+    masterOutput.connect(widener.input);
 
     // Spatial processing
     const spatial = buildSpatialChain(ctx, p.spatial);
     this.liveNodes.spatialWetGain = spatial.wetGain;
-    depth.output.connect(spatial.input);
+    widener.output.connect(spatial.input);
 
     this.chainNodes = [inputGain, spatial.output];
   }
