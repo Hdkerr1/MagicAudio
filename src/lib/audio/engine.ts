@@ -805,14 +805,19 @@ export class AudioEngine {
     // === Gentle Additive EQ (max 2dB boosts) ===
     // Sub-bass foundation — controlled by bass slider
     const bassShelf = ctx.createBiquadFilter();
-    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 60;
-    bassShelf.gain.value = Math.min(2, p.bass * 3); // Max 2dB (was 8dB!)
+    bassShelf.type = 'lowshelf'; bassShelf.frequency.value = 80;
+    bassShelf.gain.value = p.bass * 6; // Up to 6dB for real punch
     this.liveNodes.bassShelf = bassShelf;
+
+    // Kick punch at 100Hz
+    const kickPunch = ctx.createBiquadFilter();
+    kickPunch.type = 'peaking'; kickPunch.frequency.value = 100;
+    kickPunch.gain.value = p.bass * 3; kickPunch.Q.value = 1.2;
 
     // Presence — controlled by presence slider
     const presenceBoost = ctx.createBiquadFilter();
     presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 2500;
-    presenceBoost.gain.value = Math.min(2.5, p.presence * 2.5); // Max 2.5dB
+    presenceBoost.gain.value = p.presence * 4; // Up to 4dB
     presenceBoost.Q.value = 1.5;
     this.liveNodes.presenceBoost = presenceBoost;
 
