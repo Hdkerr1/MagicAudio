@@ -649,10 +649,14 @@ export class AudioEngine {
     postLP.connect(wetGain); wetGain.connect(mixBus);
     mixBus.connect(comp);
 
+    // Depth enhancer for premium feel
+    const depth = buildDepthEnhancer(ctx);
+    comp.connect(depth.input);
+
     // Spatial processing
     const spatial = buildSpatialChain(ctx, p.spatial);
     this.liveNodes.spatialWetGain = spatial.wetGain;
-    comp.connect(spatial.input);
+    depth.output.connect(spatial.input);
 
     this.chainNodes = [inputGain, spatial.output];
   }
