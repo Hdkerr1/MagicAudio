@@ -212,7 +212,7 @@ export async function processRemix(
 
   // === Gain staging: compensate for all the EQ cuts ===
   const eqMakeup = offlineCtx.createGain();
-  eqMakeup.gain.value = 1.08; // ~0.7dB makeup for subtractive EQ
+  eqMakeup.gain.value = 1.12;
 
   // === STAGE 4: Glue Compression (cohesion — gentle, 2-3dB GR) ===
   onProgress({ stage: 'Applying studio compression...', percent: 40 });
