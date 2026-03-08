@@ -943,7 +943,6 @@ export class AudioEngine {
     if (this.sourceNode) { try { this.sourceNode.stop(); } catch {} this.sourceNode.disconnect(); this.sourceNode = null; }
     if (this.noiseSource) { try { this.noiseSource.stop(); } catch {} this.noiseSource = null; }
     if (this.lfoNode) { try { this.lfoNode.stop(); } catch {} this.lfoNode = null; }
-    this.isPlaying = false;
     if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
   }
 
