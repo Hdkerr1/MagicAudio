@@ -11,7 +11,7 @@ import { useEffect, useCallback } from 'react';
 const modeInfo: Record<string, { label: string; icon: typeof Waves; colorClass: string; bgClass: string }> = {
   'slowed-reverb': { label: 'Slowed + Reverb', icon: Waves, colorClass: 'text-primary', bgClass: 'bg-primary/15 border-primary/40' },
   'remix': { label: 'Remix', icon: Volume2, colorClass: 'text-accent', bgClass: 'bg-accent/15 border-accent/40' },
-  'lofi': { label: 'Slowed Lo-Fi', icon: Radio, colorClass: 'text-glow-warm', bgClass: 'bg-glow-warm/15 border-glow-warm/40' },
+  'lofi': { label: 'Vintage Lo-Fi', icon: Radio, colorClass: 'text-glow-warm', bgClass: 'bg-glow-warm/15 border-glow-warm/40' },
 };
 
 interface StudioViewProps {

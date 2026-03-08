@@ -33,7 +33,7 @@ const modes = [
   },
   {
     id: 'lofi' as ProcessingMode,
-    title: 'Slowed Lo-Fi',
+    title: 'Vintage Lo-Fi',
     subtitle: 'Vintage Tape Engine',
     description: 'Slowed down with warm vinyl texture, gentle tape wobble, and nostalgic lo-fi character.',
     icon: Radio,

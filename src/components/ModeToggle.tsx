@@ -27,7 +27,7 @@ const modes = [
   },
   {
     id: 'lofi' as PlaybackMode,
-    label: 'Slowed Lo-Fi',
+    label: 'Vintage Lo-Fi',
     shortLabel: 'Lo-Fi',
     icon: Radio,
     glowClass: 'glow-warm',
