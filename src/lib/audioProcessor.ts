@@ -271,7 +271,7 @@ async function processLoFi(
 
   // Light saturation for warmth
   const warmSaturator = offlineCtx.createWaveShaper();
-  warmSaturator.curve = createSaturationCurve(0.2);
+  warmSaturator.curve = createSaturationCurve(0.2) as Float32Array<ArrayBuffer>;
   warmSaturator.oversample = '2x';
 
   // Signal chain
