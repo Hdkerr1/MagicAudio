@@ -133,25 +133,35 @@ function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuff
  * subtle sub-harmonic synthesis, and presence sparkle for premium feel.
  * Returns { input, output } to splice into signal chain.
  */
-function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainNode } {
+function buildDepthEnhancer(ctx: AudioContext, skipBass = false): { input: GainNode; output: GainNode } {
   const input = ctx.createGain();
   input.gain.value = 1.0;
   const output = ctx.createGain();
   output.gain.value = 1.0;
 
-  // 1. Sub-bass warmth — gentle shelf boost below 80Hz (+3dB)
-  const subBass = ctx.createBiquadFilter();
-  subBass.type = 'lowshelf'; subBass.frequency.value = 80; subBass.gain.value = 3;
+  // Chain start
+  let lastNode: AudioNode = input;
 
-  // 2. Psychoacoustic bass — narrow boost at 60Hz to add "felt" bass
-  const psychoBass = ctx.createBiquadFilter();
-  psychoBass.type = 'peaking'; psychoBass.frequency.value = 60;
-  psychoBass.gain.value = 2.5; psychoBass.Q.value = 1.2;
+  if (!skipBass) {
+    // 1. Sub-bass warmth — gentle shelf boost below 80Hz (+3dB)
+    const subBass = ctx.createBiquadFilter();
+    subBass.type = 'lowshelf'; subBass.frequency.value = 80; subBass.gain.value = 3;
 
-  // 3. Body/fullness — slight 250Hz warmth
-  const body = ctx.createBiquadFilter();
-  body.type = 'peaking'; body.frequency.value = 250;
-  body.gain.value = 1.5; body.Q.value = 0.8;
+    // 2. Psychoacoustic bass — narrow boost at 60Hz to add "felt" bass
+    const psychoBass = ctx.createBiquadFilter();
+    psychoBass.type = 'peaking'; psychoBass.frequency.value = 60;
+    psychoBass.gain.value = 2.5; psychoBass.Q.value = 1.2;
+
+    // 3. Body/fullness — slight 250Hz warmth
+    const body = ctx.createBiquadFilter();
+    body.type = 'peaking'; body.frequency.value = 250;
+    body.gain.value = 1.5; body.Q.value = 0.8;
+
+    lastNode.connect(subBass);
+    subBass.connect(psychoBass);
+    psychoBass.connect(body);
+    lastNode = body;
+  }
 
   // 4. Vocal/instrument depth — 1kHz dip for 3D separation
   const depthDip = ctx.createBiquadFilter();
@@ -174,17 +184,13 @@ function buildDepthEnhancer(ctx: AudioContext): { input: GainNode; output: GainN
   const exciterCurve = new Float32Array(curveLen);
   for (let i = 0; i < curveLen; i++) {
     const x = (i / (curveLen - 1)) * 2 - 1;
-    // Soft asymmetric saturation — adds even harmonics for warmth
     exciterCurve[i] = x + 0.05 * x * x * Math.sign(x) - 0.02 * x * x * x;
   }
   exciter.curve = exciterCurve;
   exciter.oversample = '2x';
 
-  // Chain: input → subBass → psychoBass → body → depthDip → sparkle → airShimmer → exciter → output
-  input.connect(subBass);
-  subBass.connect(psychoBass);
-  psychoBass.connect(body);
-  body.connect(depthDip);
+  // Chain
+  (lastNode as AudioNode).connect(depthDip);
   depthDip.connect(sparkle);
   sparkle.connect(airShimmer);
   airShimmer.connect(exciter);
