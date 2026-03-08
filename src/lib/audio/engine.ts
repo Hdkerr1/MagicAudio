@@ -778,10 +778,10 @@ export class AudioEngine {
     const subCut2 = ctx.createBiquadFilter();
     subCut2.type = 'highpass'; subCut2.frequency.value = 28; subCut2.Q.value = 0.5;
 
-    // Mud removal 250-400Hz
+    // Mud removal — gentle
     const mudCut = ctx.createBiquadFilter();
     mudCut.type = 'peaking'; mudCut.frequency.value = 300;
-    mudCut.gain.value = -2.5; mudCut.Q.value = 1.2;
+    mudCut.gain.value = -1.5; mudCut.Q.value = 1.2;
 
     // Box/honk at 550Hz
     const boxCut = ctx.createBiquadFilter();
