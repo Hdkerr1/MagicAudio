@@ -21,11 +21,12 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioUrl = useRef('');
+  const [audioUrl, setAudioUrl] = useState('');
 
   useEffect(() => {
-    audioUrl.current = URL.createObjectURL(blob);
-    return () => URL.revokeObjectURL(audioUrl.current);
+    const url = URL.createObjectURL(blob);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [blob]);
 
   const togglePlay = () => {
@@ -41,7 +42,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
   const handleDownload = () => {
     const baseName = originalName.replace(/\.[^.]+$/, '');
     const a = document.createElement('a');
-    a.href = audioUrl.current;
+    a.href = audioUrl;
     a.download = `${baseName}_${mode}.wav`;
     a.click();
   };
@@ -63,7 +64,7 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4">
       <audio
         ref={audioRef}
-        src={audioUrl.current}
+        src={audioUrl}
         onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
         onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
         onEnded={() => setIsPlaying(false)}
