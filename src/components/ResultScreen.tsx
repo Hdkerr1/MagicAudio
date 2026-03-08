@@ -21,11 +21,12 @@ const ResultScreen = ({ blob, originalName, mode, onReset }: ResultScreenProps) 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioUrl = useRef('');
+  const [audioUrl, setAudioUrl] = useState('');
 
   useEffect(() => {
-    audioUrl.current = URL.createObjectURL(blob);
-    return () => URL.revokeObjectURL(audioUrl.current);
+    const url = URL.createObjectURL(blob);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [blob]);
 
   const togglePlay = () => {
