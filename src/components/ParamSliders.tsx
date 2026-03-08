@@ -21,18 +21,22 @@ const sliderDefs: Record<string, SliderDef[]> = {
     { key: 'speed', label: 'Speed', min: 0.6, max: 1.0, step: 0.01, unit: 'x' },
     { key: 'reverbMix', label: 'Reverb Mix', min: 0, max: 1, step: 0.01 },
     { key: 'reverbDecay', label: 'Reverb Decay', min: 1, max: 8, step: 0.5, unit: 's' },
+    { key: 'spatial', label: '🎧 Spatial / Atmos', min: 0, max: 1, step: 0.01 },
   ],
   'remix': [
     { key: 'bass', label: 'Bass', min: 0, max: 1, step: 0.01 },
     { key: 'presence', label: 'Presence', min: 0, max: 1, step: 0.01 },
     { key: 'punch', label: 'Punch', min: 0, max: 1, step: 0.01 },
     { key: 'hall', label: 'Hall Echo', min: 0, max: 1, step: 0.01 },
+    { key: 'stereoWidth', label: '🔊 Stereo Width', min: 0, max: 1, step: 0.01 },
+    { key: 'spatial', label: '🎧 Spatial / Atmos', min: 0, max: 1, step: 0.01 },
   ],
   'lofi': [
     { key: 'speed', label: 'Speed', min: 0.7, max: 1.0, step: 0.01, unit: 'x' },
     { key: 'warmth', label: 'Warmth', min: 0, max: 1, step: 0.01 },
     { key: 'crackle', label: 'Crackle', min: 0, max: 1, step: 0.01 },
     { key: 'wobble', label: 'Wow & Flutter', min: 0, max: 1, step: 0.01 },
+    { key: 'spatial', label: '🎧 Spatial / Atmos', min: 0, max: 1, step: 0.01 },
   ],
 };
 
