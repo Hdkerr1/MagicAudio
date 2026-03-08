@@ -104,7 +104,7 @@ const Index = () => {
 
   // Step 3: Converting
   if (step === 'processing' && selectedMode) {
-    return <BufferingScreen mode={selectedMode} fileName={fileName} />;
+    return <BufferingScreen mode={selectedMode} fileName={fileName} bpm={analysis?.bpm} />;
   }
 
   // Step 4: Studio player
@@ -114,6 +114,7 @@ const Index = () => {
       params={params}
       fileName={fileName}
       isExporting={isExporting}
+      bpm={analysis?.bpm ?? null}
       onTogglePlay={togglePlay}
       onSeek={seekTo}
       onParamChange={updateParam}
@@ -233,7 +234,7 @@ function UploadForMode({
 }
 
 // === Processing/buffering screen ===
-function BufferingScreen({ mode, fileName }: { mode: ProcessingMode; fileName: string }) {
+function BufferingScreen({ mode, fileName, bpm }: { mode: ProcessingMode; fileName: string; bpm?: number }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -250,9 +251,10 @@ function BufferingScreen({ mode, fileName }: { mode: ProcessingMode; fileName: s
 
   const stages = [
     { at: 0, text: 'Analyzing song characteristics...' },
-    { at: 25, text: 'Auto-tuning effect parameters...' },
-    { at: 50, text: 'Building audio chain...' },
-    { at: 75, text: 'Preparing playback...' },
+    { at: 20, text: bpm ? `Detected ${bpm} BPM — syncing effects to beat...` : 'Detecting tempo...' },
+    { at: 45, text: 'Auto-tuning effect parameters...' },
+    { at: 65, text: 'Building audio chain...' },
+    { at: 85, text: 'Preparing playback...' },
   ];
   const currentStage = [...stages].reverse().find(s => progress >= s.at)?.text || stages[0].text;
 
