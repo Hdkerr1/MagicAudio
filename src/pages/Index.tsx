@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 const Index = () => {
   const {
     state, params, isLoaded, fileName, isExporting,
-    loadFile, togglePlay, seekTo, setMode, getAnalyser,
+    loadFile, togglePlay, seekTo, setMode, getAnalyser, getAudioBuffer,
     updateParam, exportAudio, reset,
   } = useAudioEngine();
 
@@ -54,6 +54,7 @@ const Index = () => {
       onExport={handleExport}
       onReset={reset}
       getAnalyser={getAnalyser}
+      getAudioBuffer={getAudioBuffer}
     />
   );
 };
