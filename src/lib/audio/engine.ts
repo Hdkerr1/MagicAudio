@@ -13,8 +13,8 @@ export interface ModeParams {
 
 export const defaultParams: ModeParams = {
   'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4 },
-  'hard-bass': { bassBoost: 0.75, saturation: 0.7, punch: 0.6 },
-  'lofi': { warmth: 0.6, crackle: 0.5, wobble: 0.5 },
+  'hard-bass': { bassBoost: 0.5, saturation: 0.4, punch: 0.5 },
+  'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35 },
 };
 
 export interface EngineState {
@@ -62,14 +62,15 @@ function createVinylNoiseBuffer(sampleRate: number, duration: number): AudioBuff
     const data = buf.getChannelData(ch);
     let prev = 0;
     for (let i = 0; i < length; i++) {
-      prev = (prev + (Math.random() * 2 - 1) * 0.05) * 0.98;
+      // Very gentle brownian noise for smooth vinyl texture
+      prev = (prev + (Math.random() * 2 - 1) * 0.02) * 0.995;
       data[i] = prev;
-      if (Math.random() < 0.0003) {
-        const bl = Math.floor(Math.random() * 6 + 2);
-        const amp = Math.random() * 0.5 + 0.2;
+      // Occasional subtle crackle (much rarer and quieter)
+      if (Math.random() < 0.00008) {
+        const bl = Math.floor(Math.random() * 4 + 2);
+        const amp = Math.random() * 0.15 + 0.05;
         for (let j = 0; j < bl && i + j < length; j++) data[i + j] += (Math.random() * 2 - 1) * amp * (1 - j / bl);
       }
-      if (Math.random() < 0.00005) data[i] += (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 0.4 + 0.2);
     }
   }
   return buf;
@@ -91,20 +92,15 @@ export class AudioEngine {
   private noiseSource: AudioBufferSourceNode | null = null;
   private lfoNode: OscillatorNode | null = null;
 
-  // Current params
   private params: ModeParams = JSON.parse(JSON.stringify(defaultParams));
 
-  // Live-adjustable node references
   private liveNodes: {
-    // slowed-reverb
     dryGain?: GainNode;
     wetGain?: GainNode;
-    // hard-bass
     bassGain?: GainNode;
     bassSaturator?: WaveShaperNode;
     punchGain?: GainNode;
     punchBoost?: BiquadFilterNode;
-    // lofi
     noiseGain?: GainNode;
     midBoost?: BiquadFilterNode;
     lfoGain?: GainNode;
@@ -145,45 +141,44 @@ export class AudioEngine {
     this.emitState();
   }
 
-  /** Update a single parameter in real-time without rebuilding the chain */
   updateParam<M extends keyof ModeParams>(mode: M, key: keyof ModeParams[M], value: number) {
     (this.params[mode] as any)[key] = value;
 
-    // Apply live updates to running nodes
     if (mode === 'slowed-reverb' && this.currentMode === 'slowed-reverb') {
       const p = this.params['slowed-reverb'];
       if (key === 'speed' && this.sourceNode) {
         this.sourceNode.playbackRate.setTargetAtTime(p.speed, this.ctx!.currentTime, 0.05);
       }
       if (key === 'reverbMix') {
-        this.liveNodes.dryGain?.gain.setTargetAtTime(1 - p.reverbMix * 0.6, this.ctx!.currentTime, 0.05);
-        this.liveNodes.wetGain?.gain.setTargetAtTime(p.reverbMix, this.ctx!.currentTime, 0.05);
+        this.liveNodes.dryGain?.gain.setTargetAtTime(1 - p.reverbMix * 0.5, this.ctx!.currentTime, 0.05);
+        this.liveNodes.wetGain?.gain.setTargetAtTime(p.reverbMix * 0.55, this.ctx!.currentTime, 0.05);
       }
     }
 
     if (mode === 'hard-bass' && this.currentMode === 'hard-bass') {
       const p = this.params['hard-bass'];
       if (key === 'bassBoost' && this.liveNodes.bassGain) {
-        this.liveNodes.bassGain.gain.setTargetAtTime(1 + p.bassBoost * 5, this.ctx!.currentTime, 0.05);
+        // Gentle range: 0dB to +8dB (1.0 to 2.5)
+        this.liveNodes.bassGain.gain.setTargetAtTime(1 + p.bassBoost * 1.5, this.ctx!.currentTime, 0.05);
       }
       if (key === 'saturation' && this.liveNodes.bassSaturator) {
-        this.liveNodes.bassSaturator.curve = createSaturationCurve(p.saturation) as Float32Array<ArrayBuffer>;
+        this.liveNodes.bassSaturator.curve = createSaturationCurve(p.saturation * 0.6) as Float32Array<ArrayBuffer>;
       }
       if (key === 'punch' && this.liveNodes.punchGain) {
-        this.liveNodes.punchGain.gain.setTargetAtTime(p.punch, this.ctx!.currentTime, 0.05);
+        this.liveNodes.punchGain.gain.setTargetAtTime(p.punch * 0.4, this.ctx!.currentTime, 0.05);
       }
     }
 
     if (mode === 'lofi' && this.currentMode === 'lofi') {
       const p = this.params['lofi'];
       if (key === 'warmth' && this.liveNodes.midBoost) {
-        this.liveNodes.midBoost.gain.setTargetAtTime(p.warmth * 6, this.ctx!.currentTime, 0.05);
+        this.liveNodes.midBoost.gain.setTargetAtTime(p.warmth * 4, this.ctx!.currentTime, 0.05);
       }
       if (key === 'crackle' && this.liveNodes.noiseGain) {
-        this.liveNodes.noiseGain.gain.setTargetAtTime(p.crackle * 0.08, this.ctx!.currentTime, 0.05);
+        this.liveNodes.noiseGain.gain.setTargetAtTime(p.crackle * 0.025, this.ctx!.currentTime, 0.05);
       }
       if (key === 'wobble' && this.liveNodes.lfoGain) {
-        this.liveNodes.lfoGain.gain.setTargetAtTime(p.wobble * 0.006, this.ctx!.currentTime, 0.05);
+        this.liveNodes.lfoGain.gain.setTargetAtTime(p.wobble * 0.003, this.ctx!.currentTime, 0.05);
       }
     }
   }
@@ -293,9 +288,9 @@ export class AudioEngine {
     postLP.type = 'lowpass'; postLP.frequency.value = 12000; postLP.Q.value = 0.5;
 
     const dryGain = ctx.createGain();
-    dryGain.gain.value = 1 - p.reverbMix * 0.6;
+    dryGain.gain.value = 1 - p.reverbMix * 0.5;
     const wetGain = ctx.createGain();
-    wetGain.gain.value = p.reverbMix;
+    wetGain.gain.value = p.reverbMix * 0.55;
 
     this.liveNodes.dryGain = dryGain;
     this.liveNodes.wetGain = wetGain;
@@ -318,6 +313,10 @@ export class AudioEngine {
     this.chainNodes = [inputGain, comp];
   }
 
+  /**
+   * Hard Bass — clean, deep, punchy bass enhancement.
+   * Key fixes: much lower gain staging, gentler saturation, proper gain structure.
+   */
   private buildHardBassChain() {
     const ctx = this.ctx!;
     const p = this.params['hard-bass'];
@@ -325,71 +324,97 @@ export class AudioEngine {
     const inputGain = ctx.createGain();
     inputGain.gain.value = 1.0;
 
+    // === Sub-bass path (20–80Hz) — clean boost, gentle saturation ===
     const subLP = ctx.createBiquadFilter();
-    subLP.type = 'lowpass'; subLP.frequency.value = 80; subLP.Q.value = 0.8;
+    subLP.type = 'lowpass'; subLP.frequency.value = 80; subLP.Q.value = 0.7;
 
+    // Gentle warm saturation on sub — NOT aggressive distortion
     const bassSaturator = ctx.createWaveShaper();
-    bassSaturator.curve = createSaturationCurve(p.saturation) as Float32Array<ArrayBuffer>;
+    bassSaturator.curve = createSaturationCurve(p.saturation * 0.6) as Float32Array<ArrayBuffer>;
     bassSaturator.oversample = '4x';
     this.liveNodes.bassSaturator = bassSaturator;
 
+    // Bass gain: 0dB to +8dB max (1.0 to 2.5) — NOT +15dB
     const bassGain = ctx.createGain();
-    bassGain.gain.value = 1 + p.bassBoost * 5;
+    bassGain.gain.value = 1 + p.bassBoost * 1.5;
     this.liveNodes.bassGain = bassGain;
 
+    // === Punch/body path (60–200Hz) — adds weight and knock ===
     const punchBP = ctx.createBiquadFilter();
-    punchBP.type = 'bandpass'; punchBP.frequency.value = 100; punchBP.Q.value = 1.0;
+    punchBP.type = 'bandpass'; punchBP.frequency.value = 120; punchBP.Q.value = 0.8;
 
+    // Gentle peaking EQ, not extreme
     const punchBoost = ctx.createBiquadFilter();
-    punchBoost.type = 'peaking'; punchBoost.frequency.value = 85;
-    punchBoost.gain.value = 8; punchBoost.Q.value = 1.5;
+    punchBoost.type = 'peaking'; punchBoost.frequency.value = 90;
+    punchBoost.gain.value = 4; punchBoost.Q.value = 1.2;
     this.liveNodes.punchBoost = punchBoost;
 
-    const punchSat = ctx.createWaveShaper();
-    punchSat.curve = createSaturationCurve(0.8) as Float32Array<ArrayBuffer>;
-    punchSat.oversample = '4x';
-
     const punchGain = ctx.createGain();
-    punchGain.gain.value = p.punch;
+    punchGain.gain.value = p.punch * 0.4;
     this.liveNodes.punchGain = punchGain;
 
-    const clickBoost = ctx.createBiquadFilter();
-    clickBoost.type = 'peaking'; clickBoost.frequency.value = 2500;
-    clickBoost.gain.value = 3; clickBoost.Q.value = 2.0;
+    // === Dry/presence path — keep mids and highs clean ===
+    const presenceBoost = ctx.createBiquadFilter();
+    presenceBoost.type = 'peaking'; presenceBoost.frequency.value = 3000;
+    presenceBoost.gain.value = 1.5; presenceBoost.Q.value = 1.5;
 
     const dryGain = ctx.createGain();
-    dryGain.gain.value = 0.65;
+    dryGain.gain.value = 0.75; // Keep dry signal dominant
 
+    // === Mix bus ===
     const mixBus = ctx.createGain();
-    mixBus.gain.value = 1.0;
+    mixBus.gain.value = 0.8; // Headroom before master processing
 
-    const masterSat = ctx.createWaveShaper();
-    masterSat.curve = createSaturationCurve(0.15) as Float32Array<ArrayBuffer>;
-    masterSat.oversample = '2x';
+    // === Master chain: gentle glue compression + transparent limiter ===
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 3;
+    comp.attack.value = 0.005; comp.release.value = 0.15;
 
+    // Soft clipper for safety — NOT aggressive waveshaping
     const softClip = ctx.createWaveShaper();
     softClip.curve = createSoftClipCurve() as Float32Array<ArrayBuffer>;
-    softClip.oversample = '4x';
+    softClip.oversample = '2x';
 
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -8; comp.knee.value = 4; comp.ratio.value = 6;
-    comp.attack.value = 0.002; comp.release.value = 0.12;
-
+    // Transparent limiter
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -2; limiter.knee.value = 0; limiter.ratio.value = 20;
-    limiter.attack.value = 0.001; limiter.release.value = 0.05;
+    limiter.threshold.value = -3; limiter.knee.value = 2; limiter.ratio.value = 12;
+    limiter.attack.value = 0.001; limiter.release.value = 0.08;
 
+    // Sub cut to save headroom on inaudible content
     const subCut = ctx.createBiquadFilter();
     subCut.type = 'highpass'; subCut.frequency.value = 25; subCut.Q.value = 0.5;
 
-    inputGain.connect(clickBoost); clickBoost.connect(dryGain); dryGain.connect(mixBus);
-    inputGain.connect(subLP); subLP.connect(bassSaturator); bassSaturator.connect(bassGain); bassGain.connect(mixBus);
-    inputGain.connect(punchBP); punchBP.connect(punchBoost); punchBoost.connect(punchSat); punchSat.connect(punchGain); punchGain.connect(mixBus);
-    mixBus.connect(masterSat); masterSat.connect(softClip); softClip.connect(comp); comp.connect(subCut); subCut.connect(limiter);
+    // === Routing ===
+    // Dry path (clean mids/highs with presence)
+    inputGain.connect(presenceBoost);
+    presenceBoost.connect(dryGain);
+    dryGain.connect(mixBus);
+
+    // Sub-bass path (warm saturated lows)
+    inputGain.connect(subLP);
+    subLP.connect(bassSaturator);
+    bassSaturator.connect(bassGain);
+    bassGain.connect(mixBus);
+
+    // Punch path (body/knock)
+    inputGain.connect(punchBP);
+    punchBP.connect(punchBoost);
+    punchBoost.connect(punchGain);
+    punchGain.connect(mixBus);
+
+    // Master processing
+    mixBus.connect(comp);
+    comp.connect(softClip);
+    softClip.connect(subCut);
+    subCut.connect(limiter);
 
     this.chainNodes = [inputGain, limiter];
   }
 
+  /**
+   * Lo-Fi — warm, nostalgic vintage sound.
+   * Key fixes: wider bandwidth (not telephone), very subtle noise/wobble, musical saturation.
+   */
   private buildLoFiChain() {
     const ctx = this.ctx!;
     const p = this.params['lofi'];
@@ -397,56 +422,86 @@ export class AudioEngine {
     const inputGain = ctx.createGain();
     inputGain.gain.value = 1.0;
 
+    // === Vintage frequency shaping — NOT telephone narrow ===
+    // Gentle roll-off, much wider than before
     const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 300; hp.Q.value = 0.5;
+    hp.type = 'highpass'; hp.frequency.value = 80; hp.Q.value = 0.5;
 
     const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 6000; lp.Q.value = 0.5;
+    lp.type = 'lowpass'; lp.frequency.value = 12000; lp.Q.value = 0.5;
 
+    // Second lowpass for gentle HF roll-off (vintage character)
+    const lp2 = ctx.createBiquadFilter();
+    lp2.type = 'lowpass'; lp2.frequency.value = 10000; lp2.Q.value = 0.5;
+
+    // Warm mid-range presence
     const midBoost = ctx.createBiquadFilter();
-    midBoost.type = 'peaking'; midBoost.frequency.value = 700;
-    midBoost.gain.value = p.warmth * 6; midBoost.Q.value = 1.2;
+    midBoost.type = 'peaking'; midBoost.frequency.value = 800;
+    midBoost.gain.value = p.warmth * 4; midBoost.Q.value = 0.8;
     this.liveNodes.midBoost = midBoost;
 
+    // Slight high-mid dip (tape head loss character)
+    const hiMidCut = ctx.createBiquadFilter();
+    hiMidCut.type = 'peaking'; hiMidCut.frequency.value = 4500;
+    hiMidCut.gain.value = -1.5; hiMidCut.Q.value = 0.8;
+
+    // === Gentle tape saturation ===
     const sat = ctx.createWaveShaper();
-    sat.curve = createSaturationCurve(0.3) as Float32Array<ArrayBuffer>;
+    sat.curve = createSaturationCurve(0.2) as Float32Array<ArrayBuffer>;
     sat.oversample = '4x';
 
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -15; comp.knee.value = 12; comp.ratio.value = 2.5;
-    comp.attack.value = 0.02; comp.release.value = 0.3;
-
-    const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.85;
-
-    const delay = ctx.createDelay(0.1);
-    delay.delayTime.value = 0.005;
+    // === Very subtle wow & flutter via modulated delay ===
+    const delay = ctx.createDelay(0.05);
+    delay.delayTime.value = 0.003;
 
     const lfo = ctx.createOscillator();
-    lfo.type = 'sine'; lfo.frequency.value = 0.5;
+    lfo.type = 'sine'; lfo.frequency.value = 0.4;
     const lfoGain = ctx.createGain();
-    lfoGain.gain.value = p.wobble * 0.006;
+    lfoGain.gain.value = p.wobble * 0.003; // Very subtle — was 0.006
     lfo.connect(lfoGain); lfoGain.connect(delay.delayTime);
     lfo.start();
     this.lfoNode = lfo;
     this.liveNodes.lfoGain = lfoGain;
 
+    // === Gentle glue compression ===
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.knee.value = 15; comp.ratio.value = 2;
+    comp.attack.value = 0.03; comp.release.value = 0.3;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 0.92;
+
+    // === Vinyl noise — very quiet background texture ===
     if (this.audioBuffer) {
       const noiseBuf = createVinylNoiseBuffer(ctx.sampleRate, this.audioBuffer.duration + 10);
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = noiseBuf; noiseSource.loop = true;
       const noiseGain = ctx.createGain();
-      noiseGain.gain.value = p.crackle * 0.08;
+      noiseGain.gain.value = p.crackle * 0.025; // Much quieter — was 0.08
       this.liveNodes.noiseGain = noiseGain;
+
+      // Filter noise to be warm, not harsh
       const noiseLP = ctx.createBiquadFilter();
-      noiseLP.type = 'lowpass'; noiseLP.frequency.value = 5000; noiseLP.Q.value = 0.5;
-      noiseSource.connect(noiseLP); noiseLP.connect(noiseGain); noiseGain.connect(masterGain);
+      noiseLP.type = 'lowpass'; noiseLP.frequency.value = 3000; noiseLP.Q.value = 0.5;
+      const noiseHP = ctx.createBiquadFilter();
+      noiseHP.type = 'highpass'; noiseHP.frequency.value = 200; noiseHP.Q.value = 0.5;
+
+      noiseSource.connect(noiseHP); noiseHP.connect(noiseLP);
+      noiseLP.connect(noiseGain); noiseGain.connect(masterGain);
       noiseSource.start();
       this.noiseSource = noiseSource;
     }
 
-    inputGain.connect(hp); hp.connect(lp); lp.connect(midBoost);
-    midBoost.connect(delay); delay.connect(sat); sat.connect(comp); comp.connect(masterGain);
+    // === Signal chain ===
+    inputGain.connect(hp);
+    hp.connect(lp);
+    lp.connect(lp2);
+    lp2.connect(midBoost);
+    midBoost.connect(hiMidCut);
+    hiMidCut.connect(delay);
+    delay.connect(sat);
+    sat.connect(comp);
+    comp.connect(masterGain);
 
     this.chainNodes = [inputGain, masterGain];
   }
