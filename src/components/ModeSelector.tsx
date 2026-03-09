@@ -1,7 +1,10 @@
-import { Waves, Volume2, Radio, Music, Headphones } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import UsageBadge from './UsageBadge';
+import { useNavigate } from 'react-router-dom';
 
 export const demoTracks = [
   { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
