@@ -101,6 +101,7 @@ const StudioView = ({
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <UsageBadge />
           {/* A/B Toggle pill */}
           <div className="flex rounded-full border border-border/50 overflow-hidden">
             <button
