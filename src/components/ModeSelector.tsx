@@ -1,7 +1,10 @@
-import { Waves, Volume2, Radio, Music, Headphones } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import UsageBadge from './UsageBadge';
+import { useNavigate } from 'react-router-dom';
 
 export const demoTracks = [
   { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
@@ -55,9 +58,36 @@ const modes = [
 const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
   const isLanding = !fileName;
   const [showDemos, setShowDemos] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4 py-12">
+      {/* Top bar */}
+      <div className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-4 md:px-6 py-3">
+        <div />
+        <div className="flex items-center gap-2">
+          <UsageBadge />
+          {user ? (
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-secondary/30 hover:bg-secondary/50 transition-colors text-xs text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/auth')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-semibold"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Sign In
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/5 blur-[120px] animate-pulse-glow" />
