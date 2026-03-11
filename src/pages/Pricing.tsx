@@ -169,6 +169,8 @@ const Pricing = () => {
         <span>·</span>
         <Link to="/terms" className="hover:text-foreground transition-colors">Terms & Conditions</Link>
         <span>·</span>
+        <Link to="/dmca" className="hover:text-foreground transition-colors">DMCA & Copyright</Link>
+        <span>·</span>
         <Link to="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link>
         <span>·</span>
         <Link to="/contact" className="hover:text-foreground transition-colors">Contact Us</Link>
