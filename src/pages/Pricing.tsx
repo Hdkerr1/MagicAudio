@@ -1,19 +1,79 @@
 import { Music, Check, Zap, Crown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const Pricing = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    // Will be replaced with Stripe checkout
-    toast.info('Stripe checkout coming soon!');
+
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'TuneSence',
+        description: 'Premium Plan — Unlimited Conversions',
+        order_id: data.order_id,
+        prefill: { email: data.user_email },
+        theme: { color: '#7c3aed' },
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          try {
+            const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+              body: response,
+            });
+
+            if (verifyError) throw verifyError;
+
+            await refreshProfile();
+            toast.success('🎉 Premium activated! Enjoy unlimited conversions.');
+          } catch {
+            toast.error('Payment verification failed. Contact support.');
+          }
+        },
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', () => {
+        toast.error('Payment failed. Please try again.');
+        setLoading(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not initiate payment. Try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,7 +102,7 @@ const Pricing = () => {
             <h3 className="text-lg font-semibold text-foreground">Free</h3>
           </div>
           <div className="mb-6">
-            <span className="text-3xl font-bold text-foreground">$0</span>
+            <span className="text-3xl font-bold text-foreground">₹0</span>
             <span className="text-muted-foreground text-sm">/forever</span>
           </div>
           <ul className="space-y-3 mb-6">
@@ -71,7 +131,7 @@ const Pricing = () => {
             <h3 className="text-lg font-semibold text-foreground">Premium</h3>
           </div>
           <div className="mb-6">
-            <span className="text-3xl font-bold text-foreground">$4.99</span>
+            <span className="text-3xl font-bold text-foreground">₹399</span>
             <span className="text-muted-foreground text-sm">/month</span>
           </div>
           <ul className="space-y-3 mb-6">
@@ -84,14 +144,14 @@ const Pricing = () => {
           </ul>
           <button
             onClick={handleUpgrade}
+            disabled={profile?.is_premium || loading}
             className={`w-full py-2.5 rounded-xl font-semibold transition-colors ${
               profile?.is_premium
                 ? 'bg-secondary/40 text-muted-foreground cursor-default'
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
-            disabled={profile?.is_premium}
           >
-            {profile?.is_premium ? 'Current Plan' : 'Upgrade to Premium'}
+            {profile?.is_premium ? 'Current Plan' : loading ? 'Processing...' : 'Upgrade to Premium'}
           </button>
         </div>
       </div>
@@ -102,6 +162,17 @@ const Pricing = () => {
       >
         ← Back to app
       </button>
+
+      {/* Footer with required policy links */}
+      <div className="relative z-10 mt-12 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+        <Link to="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+        <span>·</span>
+        <Link to="/terms" className="hover:text-foreground transition-colors">Terms & Conditions</Link>
+        <span>·</span>
+        <Link to="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link>
+        <span>·</span>
+        <Link to="/contact" className="hover:text-foreground transition-colors">Contact Us</Link>
+      </div>
     </div>
   );
 };
