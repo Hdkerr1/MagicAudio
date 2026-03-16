@@ -188,18 +188,24 @@ const modeLabels: Record<ProcessingMode, string> = {
   'slowed-reverb': 'Slowed + Reverb',
   'remix': 'Remix',
   'lofi': 'Vintage Lo-Fi',
+  '8d-spatial': '8D Spatial Audio',
+  '3d-surround': '3D Surround Sound',
 };
 
 const modeColors: Record<ProcessingMode, string> = {
   'slowed-reverb': 'text-primary',
   'remix': 'text-accent',
   'lofi': 'text-glow-warm',
+  '8d-spatial': 'text-primary',
+  '3d-surround': 'text-accent',
 };
 
 const modeBgColors: Record<ProcessingMode, string> = {
   'slowed-reverb': 'bg-primary/10 border-primary/30',
   'remix': 'bg-accent/10 border-accent/30',
   'lofi': 'bg-glow-warm/10 border-glow-warm/30',
+  '8d-spatial': 'bg-primary/10 border-primary/30',
+  '3d-surround': 'bg-accent/10 border-accent/30',
 };
 
 function UploadForMode({ mode, onFileSelected, onBack }: { mode: ProcessingMode; onFileSelected: (file: File) => void; onBack: () => void }) {
