@@ -289,6 +289,8 @@ function BufferingScreen({ mode, fileName, bpm }: { mode: ProcessingMode; fileNa
     'slowed-reverb': 'bg-primary',
     'remix': 'bg-accent',
     'lofi': 'bg-glow-warm',
+    '8d-spatial': 'bg-primary',
+    '3d-surround': 'bg-accent',
   };
 
   return (

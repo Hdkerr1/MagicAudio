@@ -3,18 +3,22 @@
  */
 import { createSaturationCurve, createSoftClipCurve } from './dsp-utils';
 
-export type PlaybackMode = 'slowed-reverb' | 'remix' | 'lofi' | null;
+export type PlaybackMode = 'slowed-reverb' | 'remix' | 'lofi' | '8d-spatial' | '3d-surround' | null;
 
 export interface ModeParams {
   'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number; spatial: number };
   'remix': { bass: number; presence: number; punch: number; hall: number; stereoWidth: number; spatial: number };
   'lofi': { warmth: number; crackle: number; wobble: number; speed: number; spatial: number };
+  '8d-spatial': { speed: number; reverbMix: number; reverbDecay: number; spatial: number };
+  '3d-surround': { bass: number; presence: number; punch: number; hall: number; stereoWidth: number; spatial: number };
 }
 
 export const defaultParams: ModeParams = {
   'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4, spatial: 0.5 },
   'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4, stereoWidth: 0.6, spatial: 0.5 },
   'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88, spatial: 0.4 },
+  '8d-spatial': { speed: 0.95, reverbMix: 0.7, reverbDecay: 5, spatial: 1.0 },
+  '3d-surround': { bass: 0.6, presence: 0.6, punch: 0.4, hall: 0.7, stereoWidth: 1.0, spatial: 0.9 },
 };
 
 export interface EngineState {
