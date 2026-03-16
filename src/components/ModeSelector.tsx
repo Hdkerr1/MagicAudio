@@ -96,7 +96,52 @@ const modes: ModeCardDef[] = [
   },
 ];
 
-const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
+function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void }) {
+  const Icon = mode.icon;
+  return (
+    <button
+      onClick={() => onSelect(mode.id)}
+      className={`
+        group relative p-6 rounded-2xl border border-border/60 glass
+        transition-all duration-300 text-left
+        hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
+      `}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit transition-transform duration-300 group-hover:scale-110`}>
+          <Icon className={`w-6 h-6 ${mode.iconColor}`} />
+        </div>
+        {mode.headphonesRecommended && (
+          <Badge variant="outline" className="flex items-center gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
+            <Headphones className="w-3 h-3" />
+            Headphones Recommended
+          </Badge>
+        )}
+      </div>
+      <h3 className="text-xl font-semibold text-foreground mb-1">
+        {mode.title}
+      </h3>
+      <p className={`text-xs font-mono ${mode.iconColor} mb-3 opacity-70`}>
+        {mode.subtitle}
+      </p>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {mode.description}
+      </p>
+      {mode.premium && (
+        <Badge className="absolute top-6 right-14 bg-primary/20 text-primary border-primary/30 text-[10px]">
+          Premium
+        </Badge>
+      )}
+      <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </div>
+    </button>
+  );
+}
+
+
   const isLanding = !fileName;
   const [showDemos, setShowDemos] = useState(false);
   const { user, signOut } = useAuth();
