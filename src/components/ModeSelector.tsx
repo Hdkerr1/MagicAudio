@@ -141,7 +141,7 @@ function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: Proces
   );
 }
 
-
+const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
   const isLanding = !fileName;
   const [showDemos, setShowDemos] = useState(false);
   const { user, signOut } = useAuth();
