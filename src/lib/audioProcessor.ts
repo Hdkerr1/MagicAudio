@@ -30,6 +30,14 @@ export async function processAudio(
     case 'lofi':
       processedBuffer = await processLoFi(buffer, onProgress, analysis);
       break;
+    case '8d-spatial':
+      // Spatial 8D processing - reuses remix engine with spatial parameters
+      processedBuffer = await processRemix(buffer, onProgress, analysis);
+      break;
+    case '3d-surround':
+      // 3D Surround processing - reuses remix engine with widening parameters
+      processedBuffer = await processRemix(buffer, onProgress, analysis);
+      break;
   }
 
   onProgress({ stage: 'Encoding MP3...', percent: 95 });

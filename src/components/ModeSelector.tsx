@@ -1,10 +1,11 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import UsageBadge from './UsageBadge';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 export const demoTracks = [
   { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
@@ -19,9 +20,23 @@ interface ModeSelectorProps {
   onDemoSelect?: (demoUrl: string, demoName: string) => void;
 }
 
-const modes = [
+interface ModeCardDef {
+  id: ProcessingMode;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: typeof Waves;
+  borderClass: string;
+  iconColor: string;
+  bgAccent: string;
+  glowHover: string;
+  headphonesRecommended?: boolean;
+  premium?: boolean;
+}
+
+const modes: ModeCardDef[] = [
   {
-    id: 'slowed-reverb' as ProcessingMode,
+    id: 'slowed-reverb',
     title: 'Slowed + Reverb',
     subtitle: 'Dreamy Reverb Engine',
     description: 'Slow down the track with lush algorithmic reverb, creating a dreamy, atmospheric vibe.',
@@ -32,7 +47,7 @@ const modes = [
     glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.15)]',
   },
   {
-    id: 'remix' as ProcessingMode,
+    id: 'remix',
     title: 'Remix',
     subtitle: 'Premium Remix Engine',
     description: 'Hall echo, punchy bass, crisp presence, and professional mastering quality.',
@@ -43,7 +58,7 @@ const modes = [
     glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.15)]',
   },
   {
-    id: 'lofi' as ProcessingMode,
+    id: 'lofi',
     title: 'Vintage Lo-Fi',
     subtitle: 'Vintage Tape Engine',
     description: 'Slowed down with warm vinyl texture, gentle tape wobble, and nostalgic lo-fi character.',
@@ -53,7 +68,78 @@ const modes = [
     bgAccent: 'bg-glow-warm/10',
     glowHover: 'hover:shadow-[0_0_30px_hsl(30_100%_55%/0.15)]',
   },
-] as const;
+  {
+    id: '8d-spatial',
+    title: '🌀 8D Spatial Audio',
+    subtitle: 'Immersive 360° Engine',
+    description: 'Immerse yourself in a virtual soundscape. Put on your headphones and feel the music swirling around your head in a massive 360-degree environment.',
+    icon: Orbit,
+    borderClass: 'hover:border-primary/50',
+    iconColor: 'text-primary',
+    bgAccent: 'bg-primary/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.2)]',
+    headphonesRecommended: true,
+    premium: true,
+  },
+  {
+    id: '3d-surround',
+    title: '🔊 3D Surround Sound',
+    subtitle: 'Concert Hall Engine',
+    description: 'Expand the stereo width of any normal MP3, making it feel like you are listening to the song live in a massive concert hall.',
+    icon: Speaker,
+    borderClass: 'hover:border-accent/50',
+    iconColor: 'text-accent',
+    bgAccent: 'bg-accent/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.2)]',
+    headphonesRecommended: true,
+    premium: true,
+  },
+];
+
+function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void }) {
+  const Icon = mode.icon;
+  return (
+    <button
+      onClick={() => onSelect(mode.id)}
+      className={`
+        group relative p-6 rounded-2xl border border-border/60 glass
+        transition-all duration-300 text-left
+        hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
+      `}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit transition-transform duration-300 group-hover:scale-110`}>
+          <Icon className={`w-6 h-6 ${mode.iconColor}`} />
+        </div>
+        {mode.headphonesRecommended && (
+          <Badge variant="outline" className="flex items-center gap-1 text-[10px] border-muted-foreground/30 text-muted-foreground">
+            <Headphones className="w-3 h-3" />
+            Headphones Recommended
+          </Badge>
+        )}
+      </div>
+      <h3 className="text-xl font-semibold text-foreground mb-1">
+        {mode.title}
+      </h3>
+      <p className={`text-xs font-mono ${mode.iconColor} mb-3 opacity-70`}>
+        {mode.subtitle}
+      </p>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {mode.description}
+      </p>
+      {mode.premium && (
+        <Badge className="absolute top-6 right-14 bg-primary/20 text-primary border-primary/30 text-[10px]">
+          Premium
+        </Badge>
+      )}
+      <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </div>
+    </button>
+  );
+}
 
 const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
   const isLanding = !fileName;
@@ -119,40 +205,25 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
         )}
       </div>
 
+      {/* Standard modes */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
-        {modes.map((mode) => {
-          const Icon = mode.icon;
-          return (
-            <button
-              key={mode.id}
-              onClick={() => onModeSelect(mode.id)}
-              className={`
-                group relative p-6 rounded-2xl border border-border/60 glass
-                transition-all duration-300 text-left
-                hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
-              `}
-            >
-              <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit mb-4 transition-transform duration-300 group-hover:scale-110`}>
-                <Icon className={`w-6 h-6 ${mode.iconColor}`} />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-1">
-                {mode.title}
-              </h3>
-              <p className={`text-xs font-mono ${mode.iconColor} mb-3 opacity-70`}>
-                {mode.subtitle}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {mode.description}
-              </p>
-              {/* Hover arrow indicator */}
-              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-          );
-        })}
+        {modes.filter(m => !m.premium).map((mode) => (
+          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+        ))}
+      </div>
+
+      {/* Premium spatial modes */}
+      <div className="relative z-10 w-full max-w-4xl mt-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1 bg-border/40" />
+          <span className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">Premium Spatial</span>
+          <div className="h-px flex-1 bg-border/40" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {modes.filter(m => m.premium).map((mode) => (
+            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+          ))}
+        </div>
       </div>
 
       {/* Try Demo Section */}

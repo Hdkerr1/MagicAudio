@@ -293,5 +293,19 @@ export function autoTuneParams(analysis: AudioAnalysis): ModeParams {
       wobble: isSlow ? 0.4 : isFast ? 0.2 : 0.3,
       spatial: 0.35 + (1 - energy) * 0.2,
     },
+    '8d-spatial': {
+      speed: 0.95,
+      reverbMix: 0.65 + brightness * 0.5,
+      reverbDecay: Math.min(8, Math.max(3, beat * (isSlow ? 8 : 6))),
+      spatial: 0.85 + brightness * 0.15,
+    },
+    '3d-surround': {
+      bass: bassRatio > 0.4 ? 0.4 + (1 - bassRatio) * 0.3 : 0.55 + (1 - bassRatio) * 0.25,
+      presence: 0.5 + brightness * 0.3,
+      punch: 0.35 + dynamicRange * 0.25,
+      hall: isSlow ? 0.6 : 0.45 + dynamicRange * 0.2,
+      stereoWidth: 0.8 + dynamicRange * 0.2,
+      spatial: 0.8 + brightness * 0.15,
+    },
   };
 }

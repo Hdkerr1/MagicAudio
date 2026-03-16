@@ -38,12 +38,28 @@ const sliderDefs: Record<string, SliderDef[]> = {
     { key: 'wobble', label: 'Wow & Flutter', min: 0, max: 1, step: 0.01 },
     { key: 'spatial', label: '🎧 Spatial / Atmos', min: 0, max: 1, step: 0.01 },
   ],
+  '8d-spatial': [
+    { key: 'speed', label: 'Speed', min: 0.8, max: 1.0, step: 0.01, unit: 'x' },
+    { key: 'reverbMix', label: 'Reverb Mix', min: 0, max: 1, step: 0.01 },
+    { key: 'reverbDecay', label: 'Reverb Decay', min: 1, max: 8, step: 0.5, unit: 's' },
+    { key: 'spatial', label: '🌀 8D Rotation', min: 0, max: 1, step: 0.01 },
+  ],
+  '3d-surround': [
+    { key: 'bass', label: 'Bass', min: 0, max: 1, step: 0.01 },
+    { key: 'presence', label: 'Presence', min: 0, max: 1, step: 0.01 },
+    { key: 'punch', label: 'Punch', min: 0, max: 1, step: 0.01 },
+    { key: 'hall', label: 'Hall Size', min: 0, max: 1, step: 0.01 },
+    { key: 'stereoWidth', label: '🔊 Surround Width', min: 0, max: 1, step: 0.01 },
+    { key: 'spatial', label: '🎧 3D Depth', min: 0, max: 1, step: 0.01 },
+  ],
 };
 
 const modeAccents: Record<string, string> = {
   'slowed-reverb': 'text-primary',
   'remix': 'text-accent',
   'lofi': 'text-glow-warm',
+  '8d-spatial': 'text-primary',
+  '3d-surround': 'text-accent',
 };
 
 const formatValue = (val: number, def: SliderDef) => {
@@ -81,6 +97,8 @@ const ParamSliders = ({ mode, params, onParamChange }: ParamSlidersProps) => {
               if (mode === 'slowed-reverb') onParamChange('slowed-reverb', def.key as keyof ModeParams['slowed-reverb'], v);
               else if (mode === 'remix') onParamChange('remix', def.key as keyof ModeParams['remix'], v);
               else if (mode === 'lofi') onParamChange('lofi', def.key as keyof ModeParams['lofi'], v);
+              else if (mode === '8d-spatial') onParamChange('8d-spatial', def.key as keyof ModeParams['8d-spatial'], v);
+              else if (mode === '3d-surround') onParamChange('3d-surround', def.key as keyof ModeParams['3d-surround'], v);
             }}
             className="w-full"
           />
