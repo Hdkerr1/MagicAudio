@@ -1,10 +1,11 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import UsageBadge from './UsageBadge';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 export const demoTracks = [
   { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
@@ -19,9 +20,23 @@ interface ModeSelectorProps {
   onDemoSelect?: (demoUrl: string, demoName: string) => void;
 }
 
-const modes = [
+interface ModeCardDef {
+  id: ProcessingMode;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: typeof Waves;
+  borderClass: string;
+  iconColor: string;
+  bgAccent: string;
+  glowHover: string;
+  headphonesRecommended?: boolean;
+  premium?: boolean;
+}
+
+const modes: ModeCardDef[] = [
   {
-    id: 'slowed-reverb' as ProcessingMode,
+    id: 'slowed-reverb',
     title: 'Slowed + Reverb',
     subtitle: 'Dreamy Reverb Engine',
     description: 'Slow down the track with lush algorithmic reverb, creating a dreamy, atmospheric vibe.',
@@ -32,7 +47,7 @@ const modes = [
     glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.15)]',
   },
   {
-    id: 'remix' as ProcessingMode,
+    id: 'remix',
     title: 'Remix',
     subtitle: 'Premium Remix Engine',
     description: 'Hall echo, punchy bass, crisp presence, and professional mastering quality.',
@@ -43,7 +58,7 @@ const modes = [
     glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.15)]',
   },
   {
-    id: 'lofi' as ProcessingMode,
+    id: 'lofi',
     title: 'Vintage Lo-Fi',
     subtitle: 'Vintage Tape Engine',
     description: 'Slowed down with warm vinyl texture, gentle tape wobble, and nostalgic lo-fi character.',
@@ -53,7 +68,33 @@ const modes = [
     bgAccent: 'bg-glow-warm/10',
     glowHover: 'hover:shadow-[0_0_30px_hsl(30_100%_55%/0.15)]',
   },
-] as const;
+  {
+    id: '8d-spatial',
+    title: '🌀 8D Spatial Audio',
+    subtitle: 'Immersive 360° Engine',
+    description: 'Immerse yourself in a virtual soundscape. Put on your headphones and feel the music swirling around your head in a massive 360-degree environment.',
+    icon: Orbit,
+    borderClass: 'hover:border-primary/50',
+    iconColor: 'text-primary',
+    bgAccent: 'bg-primary/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.2)]',
+    headphonesRecommended: true,
+    premium: true,
+  },
+  {
+    id: '3d-surround',
+    title: '🔊 3D Surround Sound',
+    subtitle: 'Concert Hall Engine',
+    description: 'Expand the stereo width of any normal MP3, making it feel like you are listening to the song live in a massive concert hall.',
+    icon: Speaker,
+    borderClass: 'hover:border-accent/50',
+    iconColor: 'text-accent',
+    bgAccent: 'bg-accent/10',
+    glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.2)]',
+    headphonesRecommended: true,
+    premium: true,
+  },
+];
 
 const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSelectorProps) => {
   const isLanding = !fileName;
