@@ -160,40 +160,25 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
         )}
       </div>
 
+      {/* Standard modes */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
-        {modes.map((mode) => {
-          const Icon = mode.icon;
-          return (
-            <button
-              key={mode.id}
-              onClick={() => onModeSelect(mode.id)}
-              className={`
-                group relative p-6 rounded-2xl border border-border/60 glass
-                transition-all duration-300 text-left
-                hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
-              `}
-            >
-              <div className={`p-3 rounded-xl ${mode.bgAccent} w-fit mb-4 transition-transform duration-300 group-hover:scale-110`}>
-                <Icon className={`w-6 h-6 ${mode.iconColor}`} />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-1">
-                {mode.title}
-              </h3>
-              <p className={`text-xs font-mono ${mode.iconColor} mb-3 opacity-70`}>
-                {mode.subtitle}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {mode.description}
-              </p>
-              {/* Hover arrow indicator */}
-              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-          );
-        })}
+        {modes.filter(m => !m.premium).map((mode) => (
+          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+        ))}
+      </div>
+
+      {/* Premium spatial modes */}
+      <div className="relative z-10 w-full max-w-4xl mt-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1 bg-border/40" />
+          <span className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">Premium Spatial</span>
+          <div className="h-px flex-1 bg-border/40" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {modes.filter(m => m.premium).map((mode) => (
+            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+          ))}
+        </div>
       </div>
 
       {/* Try Demo Section */}

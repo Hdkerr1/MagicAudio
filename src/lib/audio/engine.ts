@@ -727,8 +727,12 @@ export class AudioEngine {
 
     if (!this._bypassed) {
       switch (this.currentMode) {
-        case 'slowed-reverb': this.buildSlowedReverbChain(); break;
-        case 'remix': this.buildRemixChain(); break;
+        case 'slowed-reverb':
+        case '8d-spatial':
+          this.buildSlowedReverbChain(); break;
+        case 'remix':
+        case '3d-surround':
+          this.buildRemixChain(); break;
         case 'lofi': this.buildLoFiChain(); break;
       }
     }

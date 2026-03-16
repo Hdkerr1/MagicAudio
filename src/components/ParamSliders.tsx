@@ -97,6 +97,8 @@ const ParamSliders = ({ mode, params, onParamChange }: ParamSlidersProps) => {
               if (mode === 'slowed-reverb') onParamChange('slowed-reverb', def.key as keyof ModeParams['slowed-reverb'], v);
               else if (mode === 'remix') onParamChange('remix', def.key as keyof ModeParams['remix'], v);
               else if (mode === 'lofi') onParamChange('lofi', def.key as keyof ModeParams['lofi'], v);
+              else if (mode === '8d-spatial') onParamChange('8d-spatial', def.key as keyof ModeParams['8d-spatial'], v);
+              else if (mode === '3d-surround') onParamChange('3d-surround', def.key as keyof ModeParams['3d-surround'], v);
             }}
             className="w-full"
           />
