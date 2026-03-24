@@ -553,6 +553,9 @@ export class AudioEngine {
         this.liveNodes.dryGain?.gain.setTargetAtTime(1 - p.reverbMix * 0.5, this.ctx!.currentTime, 0.05);
         this.liveNodes.wetGain?.gain.setTargetAtTime(p.reverbMix * 0.55, this.ctx!.currentTime, 0.05);
       }
+      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+      }
     }
 
     if (mode === 'remix' && this.currentMode === 'remix') {
@@ -596,11 +599,38 @@ export class AudioEngine {
       }
     }
 
-    // Slowed-reverb spatial
-    if (mode === 'slowed-reverb' && this.currentMode === 'slowed-reverb') {
-      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
-        const p = this.params['slowed-reverb'];
-        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+    // 8D Spatial live param updates
+    if (mode === '8d-spatial' && this.currentMode === '8d-spatial') {
+      const p = this.params['8d-spatial'];
+      if (key === 'rotationSpeed' && this.liveNodes.rotationLfo) {
+        const hz = 0.08 + p.rotationSpeed * 0.3; // 0.08-0.38 Hz
+        this.liveNodes.rotationLfo.frequency.setTargetAtTime(hz, this.ctx!.currentTime, 0.1);
+      }
+      if (key === 'spatialDepth' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatialDepth * 0.45, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'reverbMix' && this.liveNodes.spatialReverbWet) {
+        this.liveNodes.spatialReverbWet.gain.setTargetAtTime(p.reverbMix * 0.5, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'distance' && this.liveNodes.distanceGain) {
+        this.liveNodes.distanceGain.gain.setTargetAtTime(1 - p.distance * 0.4, this.ctx!.currentTime, 0.05);
+      }
+    }
+
+    // 3D Surround live param updates
+    if (mode === '3d-surround' && this.currentMode === '3d-surround') {
+      const p = this.params['3d-surround'];
+      if (key === 'stereoWidth' && this.liveNodes.surrWidthGain) {
+        this.liveNodes.surrWidthGain.gain.setTargetAtTime(0.5 + p.stereoWidth * 1.0, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'hallSize' && this.liveNodes.surrHallWet) {
+        this.liveNodes.surrHallWet.gain.setTargetAtTime(p.hallSize * 0.45, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'crossFeed' && this.liveNodes.surrCrossFeedGain) {
+        this.liveNodes.surrCrossFeedGain.gain.setTargetAtTime(p.crossFeed * 0.3, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'airiness' && this.liveNodes.surrAirShelf) {
+        this.liveNodes.surrAirShelf.gain.setTargetAtTime(p.airiness * 3, this.ctx!.currentTime, 0.05);
       }
     }
   }
