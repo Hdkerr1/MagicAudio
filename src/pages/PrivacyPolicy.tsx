@@ -33,16 +33,22 @@ const PrivacyPolicy = () => {
               <li>Authentication credentials (hashed and salted; we never store plaintext passwords)</li>
             </ul>
 
-            <h3 className="text-base font-medium text-foreground mt-4 mb-1">1.2 Audio File Data — Zero Retention Policy</h3>
+            <h3 className="text-base font-medium text-foreground mt-4 mb-1">1.2 Audio File Data — Temporary Processing & Automatic Deletion</h3>
             <p>
-              Audio files uploaded to TuneSence are processed <strong>entirely within your browser (client-side)</strong> using Web Audio API and Digital Signal Processing (DSP) algorithms. <strong>Your audio files are never uploaded to, stored on, or transmitted to our servers.</strong>
+              When you upload an audio file to TuneSence for processing, your file is <strong>temporarily stored on our secure servers</strong> solely for the purpose of applying the selected audio enhancements. The processing workflow is as follows:
             </p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li>Audio data exists only in volatile browser memory during the active session.</li>
-              <li>Once the browser tab is closed or a new file is loaded, all audio data is permanently and irreversibly discarded.</li>
-              <li>We have <strong>zero access</strong> to the content, metadata, or any derivative of your audio files.</li>
-              <li>No audio fingerprinting, content identification, or analysis is performed server-side.</li>
+              <li>Your audio file is uploaded to our processing servers via an encrypted (TLS/SSL) connection.</li>
+              <li>The file is held in temporary storage <strong>only for the duration required to complete processing</strong>.</li>
+              <li>Once processing is complete and you have downloaded the enhanced file (or after a maximum of <strong>24 hours</strong>, whichever comes first), <strong>both the original upload and the processed output are automatically and permanently deleted</strong> from our servers.</li>
+              <li>No backups, copies, or cached versions of your audio files are retained beyond this period.</li>
+              <li>We maintain detailed deletion logs (without file content) for compliance and audit purposes.</li>
             </ul>
+
+            <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 mt-4">
+              <p className="text-foreground font-medium mb-1">🤖 No AI / Machine Learning Training</p>
+              <p>We do <strong>not</strong> use your personal audio files, their content, metadata, or any derivatives thereof to train, fine-tune, or improve any artificial intelligence models, machine learning algorithms, or automated decision-making systems. Your audio is processed using deterministic DSP (Digital Signal Processing) algorithms only.</p>
+            </div>
 
             <h3 className="text-base font-medium text-foreground mt-4 mb-1">1.3 Usage Data</h3>
             <p>We collect anonymized usage metadata to enforce free-tier limits and improve the Platform:</p>
