@@ -8,6 +8,8 @@ import { audioBufferToMp3 } from './audio/encode';
 import { processSlowedReverb } from './audio/modes/slowed-reverb';
 import { processRemix } from './audio/modes/remix';
 import { processLoFi } from './audio/modes/lofi';
+import { process8DSpatial } from './audio/modes/spatial-8d';
+import { process3DSurround } from './audio/modes/surround-3d';
 
 export async function processAudio(
   file: File,
@@ -31,12 +33,10 @@ export async function processAudio(
       processedBuffer = await processLoFi(buffer, onProgress, analysis);
       break;
     case '8d-spatial':
-      // Spatial 8D processing - reuses remix engine with spatial parameters
-      processedBuffer = await processRemix(buffer, onProgress, analysis);
+      processedBuffer = await process8DSpatial(buffer, onProgress, analysis);
       break;
     case '3d-surround':
-      // 3D Surround processing - reuses remix engine with widening parameters
-      processedBuffer = await processRemix(buffer, onProgress, analysis);
+      processedBuffer = await process3DSurround(buffer, onProgress, analysis);
       break;
   }
 

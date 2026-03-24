@@ -9,16 +9,16 @@ export interface ModeParams {
   'slowed-reverb': { speed: number; reverbMix: number; reverbDecay: number; spatial: number };
   'remix': { bass: number; presence: number; punch: number; hall: number; stereoWidth: number; spatial: number };
   'lofi': { warmth: number; crackle: number; wobble: number; speed: number; spatial: number };
-  '8d-spatial': { speed: number; reverbMix: number; reverbDecay: number; spatial: number };
-  '3d-surround': { bass: number; presence: number; punch: number; hall: number; stereoWidth: number; spatial: number };
+  '8d-spatial': { rotationSpeed: number; spatialDepth: number; reverbMix: number; distance: number };
+  '3d-surround': { stereoWidth: number; hallSize: number; crossFeed: number; airiness: number };
 }
 
 export const defaultParams: ModeParams = {
   'slowed-reverb': { speed: 0.85, reverbMix: 0.6, reverbDecay: 4, spatial: 0.5 },
   'remix': { bass: 0.5, presence: 0.5, punch: 0.5, hall: 0.4, stereoWidth: 0.6, spatial: 0.5 },
   'lofi': { warmth: 0.5, crackle: 0.3, wobble: 0.35, speed: 0.88, spatial: 0.4 },
-  '8d-spatial': { speed: 0.95, reverbMix: 0.7, reverbDecay: 5, spatial: 1.0 },
-  '3d-surround': { bass: 0.6, presence: 0.6, punch: 0.4, hall: 0.7, stereoWidth: 1.0, spatial: 0.9 },
+  '8d-spatial': { rotationSpeed: 0.5, spatialDepth: 0.8, reverbMix: 0.5, distance: 0.5 },
+  '3d-surround': { stereoWidth: 0.8, hallSize: 0.6, crossFeed: 0.4, airiness: 0.5 },
 };
 
 export interface EngineState {
@@ -437,7 +437,17 @@ export class AudioEngine {
     bassWarmth?: BiquadFilterNode;
     // Spatial / stereo nodes
     spatialWetGain?: GainNode;
-    stereoWidthGain?: GainNode; // side channel gain for M/S
+    stereoWidthGain?: GainNode;
+    // 8D spatial nodes
+    rotationLfo?: OscillatorNode;
+    rotationLfoGain?: GainNode;
+    spatialReverbWet?: GainNode;
+    distanceGain?: GainNode;
+    // 3D surround nodes
+    surrWidthGain?: GainNode;
+    surrHallWet?: GainNode;
+    surrCrossFeedGain?: GainNode;
+    surrAirShelf?: BiquadFilterNode;
   } = {};
 
   async loadFile(file: File): Promise<void> {
@@ -543,6 +553,9 @@ export class AudioEngine {
         this.liveNodes.dryGain?.gain.setTargetAtTime(1 - p.reverbMix * 0.5, this.ctx!.currentTime, 0.05);
         this.liveNodes.wetGain?.gain.setTargetAtTime(p.reverbMix * 0.55, this.ctx!.currentTime, 0.05);
       }
+      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+      }
     }
 
     if (mode === 'remix' && this.currentMode === 'remix') {
@@ -586,11 +599,38 @@ export class AudioEngine {
       }
     }
 
-    // Slowed-reverb spatial
-    if (mode === 'slowed-reverb' && this.currentMode === 'slowed-reverb') {
-      if (key === 'spatial' && this.liveNodes.spatialWetGain) {
-        const p = this.params['slowed-reverb'];
-        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatial * 0.35, this.ctx!.currentTime, 0.05);
+    // 8D Spatial live param updates
+    if (mode === '8d-spatial' && this.currentMode === '8d-spatial') {
+      const p = this.params['8d-spatial'];
+      if (key === 'rotationSpeed' && this.liveNodes.rotationLfo) {
+        const hz = 0.08 + p.rotationSpeed * 0.3; // 0.08-0.38 Hz
+        this.liveNodes.rotationLfo.frequency.setTargetAtTime(hz, this.ctx!.currentTime, 0.1);
+      }
+      if (key === 'spatialDepth' && this.liveNodes.spatialWetGain) {
+        this.liveNodes.spatialWetGain.gain.setTargetAtTime(p.spatialDepth * 0.45, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'reverbMix' && this.liveNodes.spatialReverbWet) {
+        this.liveNodes.spatialReverbWet.gain.setTargetAtTime(p.reverbMix * 0.5, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'distance' && this.liveNodes.distanceGain) {
+        this.liveNodes.distanceGain.gain.setTargetAtTime(1 - p.distance * 0.4, this.ctx!.currentTime, 0.05);
+      }
+    }
+
+    // 3D Surround live param updates
+    if (mode === '3d-surround' && this.currentMode === '3d-surround') {
+      const p = this.params['3d-surround'];
+      if (key === 'stereoWidth' && this.liveNodes.surrWidthGain) {
+        this.liveNodes.surrWidthGain.gain.setTargetAtTime(0.5 + p.stereoWidth * 1.0, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'hallSize' && this.liveNodes.surrHallWet) {
+        this.liveNodes.surrHallWet.gain.setTargetAtTime(p.hallSize * 0.45, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'crossFeed' && this.liveNodes.surrCrossFeedGain) {
+        this.liveNodes.surrCrossFeedGain.gain.setTargetAtTime(p.crossFeed * 0.3, this.ctx!.currentTime, 0.05);
+      }
+      if (key === 'airiness' && this.liveNodes.surrAirShelf) {
+        this.liveNodes.surrAirShelf.gain.setTargetAtTime(p.airiness * 3, this.ctx!.currentTime, 0.05);
       }
     }
   }
@@ -728,12 +768,12 @@ export class AudioEngine {
     if (!this._bypassed) {
       switch (this.currentMode) {
         case 'slowed-reverb':
-        case '8d-spatial':
           this.buildSlowedReverbChain(); break;
         case 'remix':
-        case '3d-surround':
           this.buildRemixChain(); break;
         case 'lofi': this.buildLoFiChain(); break;
+        case '8d-spatial': this.build8DSpatialChain(); break;
+        case '3d-surround': this.build3DSurroundChain(); break;
       }
     }
     // In bypass mode, chainNodes stays empty → source connects directly to analyser
@@ -964,6 +1004,286 @@ export class AudioEngine {
     widener.output.connect(spatial.input);
 
     this.chainNodes = [inputGain, spatial.output];
+  }
+
+  /**
+   * 8D Spatial Audio — Dedicated real-time chain with HRTF panning and auto-rotation.
+   * Uses oscillator-modulated panning + cross-feed delays + spatial reverb.
+   */
+  private build8DSpatialChain() {
+    const ctx = this.ctx!;
+    const p = this.params['8d-spatial'];
+
+    const inputGain = ctx.createGain();
+    inputGain.gain.value = 1.0;
+
+    // === HRTF-based spatial processing ===
+    const splitter = ctx.createChannelSplitter(2);
+    const merger = ctx.createChannelMerger(2);
+
+    // Create stereo panner for rotation
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = 0;
+
+    // Auto-rotation LFO
+    const rotationLfo = ctx.createOscillator();
+    rotationLfo.type = 'sine';
+    const rotHz = 0.08 + p.rotationSpeed * 0.3;
+    rotationLfo.frequency.value = rotHz;
+
+    const rotationLfoGain = ctx.createGain();
+    rotationLfoGain.gain.value = 1.0; // Full pan range -1 to 1
+    rotationLfo.connect(rotationLfoGain);
+    rotationLfoGain.connect(panner.pan);
+    rotationLfo.start();
+
+    this.liveNodes.rotationLfo = rotationLfo;
+    this.liveNodes.rotationLfoGain = rotationLfoGain;
+
+    // HRTF cross-feed delays (create "around head" sensation)
+    const crossDelayLR = ctx.createDelay(0.01);
+    crossDelayLR.delayTime.value = 0.0006; // ITD ~0.6ms
+    const crossGainLR = ctx.createGain();
+    crossGainLR.gain.value = 0.25;
+    const headShadowLR = ctx.createBiquadFilter();
+    headShadowLR.type = 'lowpass'; headShadowLR.frequency.value = 5500; headShadowLR.Q.value = 0.5;
+
+    const crossDelayRL = ctx.createDelay(0.01);
+    crossDelayRL.delayTime.value = 0.0008;
+    const crossGainRL = ctx.createGain();
+    crossGainRL.gain.value = 0.22;
+    const headShadowRL = ctx.createBiquadFilter();
+    headShadowRL.type = 'lowpass'; headShadowRL.frequency.value = 5000; headShadowRL.Q.value = 0.5;
+
+    // Pinna reflections for elevation cues
+    const pinnaL = ctx.createDelay(0.005);
+    pinnaL.delayTime.value = 0.00018;
+    const pinnaGainL = ctx.createGain();
+    pinnaGainL.gain.value = 0.12;
+    const pinnaR = ctx.createDelay(0.005);
+    pinnaR.delayTime.value = 0.00022;
+    const pinnaGainR = ctx.createGain();
+    pinnaGainR.gain.value = 0.10;
+
+    // Distance simulation
+    const distanceGain = ctx.createGain();
+    distanceGain.gain.value = 1 - p.distance * 0.4;
+    this.liveNodes.distanceGain = distanceGain;
+
+    const distanceLP = ctx.createBiquadFilter();
+    distanceLP.type = 'lowpass';
+    distanceLP.frequency.value = 12000 - p.distance * 6000;
+    distanceLP.Q.value = 0.5;
+
+    // Spatial reverb for room simulation
+    const spatialReverb = ctx.createConvolver();
+    spatialReverb.buffer = generateReverbIR(ctx.sampleRate, 3.0);
+
+    const spatialReverbHP = ctx.createBiquadFilter();
+    spatialReverbHP.type = 'highpass'; spatialReverbHP.frequency.value = 250; spatialReverbHP.Q.value = 0.5;
+
+    const spatialReverbWet = ctx.createGain();
+    spatialReverbWet.gain.value = p.reverbMix * 0.5;
+    this.liveNodes.spatialReverbWet = spatialReverbWet;
+
+    const dryGain = ctx.createGain();
+    dryGain.gain.value = 0.8;
+
+    const mixBus = ctx.createGain();
+    mixBus.gain.value = 1.0;
+
+    // Depth enhancer
+    const depth = buildDepthEnhancer(ctx, true); // Skip bass boost for spatial clarity
+
+    // Compression
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 10;
+    comp.ratio.value = 2; comp.attack.value = 0.01;
+    comp.release.value = 0.2;
+
+    // === Routing ===
+    inputGain.connect(distanceGain);
+    distanceGain.connect(distanceLP);
+    distanceLP.connect(panner);
+
+    // Panner → splitter for cross-feed
+    panner.connect(splitter);
+
+    // Direct paths
+    splitter.connect(merger, 0, 0);
+    splitter.connect(merger, 1, 1);
+
+    // Cross-feed L→R (with head shadow)
+    splitter.connect(crossDelayLR, 0);
+    crossDelayLR.connect(headShadowLR);
+    headShadowLR.connect(crossGainLR);
+    crossGainLR.connect(merger, 0, 1);
+
+    // Cross-feed R→L (with head shadow)
+    splitter.connect(crossDelayRL, 1);
+    crossDelayRL.connect(headShadowRL);
+    headShadowRL.connect(crossGainRL);
+    crossGainRL.connect(merger, 0, 0);
+
+    // Pinna reflections
+    splitter.connect(pinnaL, 0);
+    pinnaL.connect(pinnaGainL);
+    pinnaGainL.connect(merger, 0, 0);
+    splitter.connect(pinnaR, 1);
+    pinnaR.connect(pinnaGainR);
+    pinnaGainR.connect(merger, 0, 1);
+
+    // Mix bus: dry + reverb
+    merger.connect(dryGain);
+    dryGain.connect(mixBus);
+
+    merger.connect(spatialReverbHP);
+    spatialReverbHP.connect(spatialReverb);
+    spatialReverb.connect(spatialReverbWet);
+    spatialReverbWet.connect(mixBus);
+
+    // Final chain
+    mixBus.connect(depth.input);
+    depth.output.connect(comp);
+
+    // Store spatial wet gain for live updates
+    this.liveNodes.spatialWetGain = spatialReverbWet;
+
+    this.chainNodes = [inputGain, comp];
+  }
+
+  /**
+   * 3D Surround Sound — Dedicated real-time chain with stereo widening,
+   * HRTF cross-feed, and concert hall reverb.
+   */
+  private build3DSurroundChain() {
+    const ctx = this.ctx!;
+    const p = this.params['3d-surround'];
+
+    const inputGain = ctx.createGain();
+    inputGain.gain.value = 1.0;
+
+    // === Mid/Side Stereo Widening ===
+    const widener = buildStereoWidener(ctx, p.stereoWidth);
+    this.liveNodes.surrWidthGain = widener.sideGain;
+
+    // === HRTF Cross-feed for natural out-of-head perception ===
+    const crossFeedSplitter = ctx.createChannelSplitter(2);
+    const crossFeedMerger = ctx.createChannelMerger(2);
+
+    // Cross-feed R→L with head shadow
+    const cfDelayRL = ctx.createDelay(0.01);
+    cfDelayRL.delayTime.value = 0.0004;
+    const cfShadowRL = ctx.createBiquadFilter();
+    cfShadowRL.type = 'lowpass'; cfShadowRL.frequency.value = 5500; cfShadowRL.Q.value = 0.5;
+    const cfGainRL = ctx.createGain();
+    cfGainRL.gain.value = p.crossFeed * 0.3;
+    this.liveNodes.surrCrossFeedGain = cfGainRL;
+
+    // Cross-feed L→R with head shadow
+    const cfDelayLR = ctx.createDelay(0.01);
+    cfDelayLR.delayTime.value = 0.0005;
+    const cfShadowLR = ctx.createBiquadFilter();
+    cfShadowLR.type = 'lowpass'; cfShadowLR.frequency.value = 5200; cfShadowLR.Q.value = 0.5;
+    const cfGainLR = ctx.createGain();
+    cfGainLR.gain.value = p.crossFeed * 0.3;
+
+    // Direct paths
+    // (Connected after widener output)
+
+    // === Concert Hall Reverb ===
+    const hallConvolver = ctx.createConvolver();
+    hallConvolver.buffer = generateHallIR(ctx.sampleRate);
+
+    const hallPreHP = ctx.createBiquadFilter();
+    hallPreHP.type = 'highpass'; hallPreHP.frequency.value = 300; hallPreHP.Q.value = 0.5;
+    const hallPreLP = ctx.createBiquadFilter();
+    hallPreLP.type = 'lowpass'; hallPreLP.frequency.value = 7000; hallPreLP.Q.value = 0.5;
+    const hallPostLP = ctx.createBiquadFilter();
+    hallPostLP.type = 'lowpass'; hallPostLP.frequency.value = 5500; hallPostLP.Q.value = 0.5;
+
+    const hallWetGain = ctx.createGain();
+    hallWetGain.gain.value = p.hallSize * 0.45;
+    this.liveNodes.surrHallWet = hallWetGain;
+
+    const hallDryGain = ctx.createGain();
+    hallDryGain.gain.value = 0.85;
+
+    const hallMixBus = ctx.createGain();
+    hallMixBus.gain.value = 1.0;
+
+    // === Air/Shimmer EQ ===
+    const airShelf = ctx.createBiquadFilter();
+    airShelf.type = 'highshelf'; airShelf.frequency.value = 10000;
+    airShelf.gain.value = p.airiness * 3;
+    this.liveNodes.surrAirShelf = airShelf;
+
+    // Bass warmth (subtle)
+    const bassWarmth = ctx.createBiquadFilter();
+    bassWarmth.type = 'lowshelf'; bassWarmth.frequency.value = 100;
+    bassWarmth.gain.value = 1.5;
+
+    // Depth enhancer
+    const depth = buildDepthEnhancer(ctx);
+
+    // Compression
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 12;
+    comp.ratio.value = 2; comp.attack.value = 0.012;
+    comp.release.value = 0.22;
+
+    // Limiter
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -2; limiter.knee.value = 3;
+    limiter.ratio.value = 10; limiter.attack.value = 0.001;
+    limiter.release.value = 0.05;
+
+    const masterOutput = ctx.createGain();
+    masterOutput.gain.value = 1.0;
+
+    // === Routing ===
+    // Input → Stereo Widener
+    inputGain.connect(widener.input);
+
+    // Widener → Cross-feed network
+    widener.output.connect(crossFeedSplitter);
+
+    // Direct paths through cross-feed
+    crossFeedSplitter.connect(crossFeedMerger, 0, 0);
+    crossFeedSplitter.connect(crossFeedMerger, 1, 1);
+
+    // R→L cross-feed
+    crossFeedSplitter.connect(cfDelayRL, 1);
+    cfDelayRL.connect(cfShadowRL);
+    cfShadowRL.connect(cfGainRL);
+    cfGainRL.connect(crossFeedMerger, 0, 0);
+
+    // L→R cross-feed
+    crossFeedSplitter.connect(cfDelayLR, 0);
+    cfDelayLR.connect(cfShadowLR);
+    cfShadowLR.connect(cfGainLR);
+    cfGainLR.connect(crossFeedMerger, 0, 1);
+
+    // Cross-feed output → Hall reverb (send/return)
+    crossFeedMerger.connect(hallDryGain);
+    hallDryGain.connect(hallMixBus);
+
+    crossFeedMerger.connect(hallPreHP);
+    hallPreHP.connect(hallPreLP);
+    hallPreLP.connect(hallConvolver);
+    hallConvolver.connect(hallPostLP);
+    hallPostLP.connect(hallWetGain);
+    hallWetGain.connect(hallMixBus);
+
+    // Post-reverb processing
+    hallMixBus.connect(bassWarmth);
+    bassWarmth.connect(airShelf);
+    airShelf.connect(depth.input);
+    depth.output.connect(comp);
+    comp.connect(limiter);
+    limiter.connect(masterOutput);
+
+    this.chainNodes = [inputGain, masterOutput];
   }
 
   /**
