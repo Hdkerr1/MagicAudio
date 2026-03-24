@@ -35,7 +35,7 @@ export function useAudioEngine() {
       setParams(autoParams);
       // Push auto params into the engine for each mode
       const engine = engineRef.current;
-      const modes = ['slowed-reverb', 'remix', 'lofi'] as const;
+      const modes = ['slowed-reverb', 'remix', 'lofi', '8d-spatial', '3d-surround'] as const;
       for (const m of modes) {
         const mp = autoParams[m] as Record<string, number>;
         for (const [k, v] of Object.entries(mp)) {
