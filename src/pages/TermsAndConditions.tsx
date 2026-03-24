@@ -139,15 +139,26 @@ const TermsAndConditions = () => {
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">10. Disclaimer of Warranties</h2>
             <p>
-              THE PLATFORM IS PROVIDED <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong> WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
+              THE PLATFORM IS PROVIDED <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong> WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
             </p>
+            <ul className="list-disc pl-5 mt-3 space-y-2">
+              <li><strong>No Uptime Guarantee:</strong> We do not warrant that the Service will be uninterrupted, error-free, or available at all times. Scheduled maintenance, server outages, and unforeseen technical issues may temporarily affect availability. We will make commercially reasonable efforts to maintain high uptime but provide no specific SLA guarantee.</li>
+              <li><strong>Subjective Audio Quality:</strong> Audio enhancement results are inherently subjective. We do not guarantee that the output of any audio processing mode will meet your personal expectations, artistic standards, or specific quality benchmarks. The quality of the enhanced audio depends on multiple factors including the quality of the original source file, the selected processing mode, and parameter settings chosen by the user.</li>
+              <li><strong>No Guarantee of Compatibility:</strong> We do not warrant that processed audio files will be compatible with all playback devices, software, or platforms.</li>
+            </ul>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">11. Limitation of Liability</h2>
             <p>
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, TUNESENCE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE PLATFORM. OUR TOTAL AGGREGATE LIABILITY SHALL NOT EXCEED THE AMOUNT PAID BY YOU TO TUNESENCE IN THE 12 MONTHS PRECEDING THE CLAIM.
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, TUNESENCE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE PLATFORM.
             </p>
+            <ul className="list-disc pl-5 mt-3 space-y-2">
+              <li>OUR TOTAL AGGREGATE LIABILITY SHALL NOT EXCEED THE AMOUNT PAID BY YOU TO TUNESENCE IN THE <strong>12 MONTHS</strong> PRECEDING THE CLAIM.</li>
+              <li>WE ARE NOT LIABLE FOR ANY LOSS OR CORRUPTION OF AUDIO FILES DURING UPLOAD, PROCESSING, OR DOWNLOAD.</li>
+              <li>WE ARE NOT LIABLE FOR THE SUBJECTIVE QUALITY, ARTISTIC MERIT, OR SUITABILITY OF THE PROCESSED AUDIO OUTPUT.</li>
+              <li>WE ARE NOT LIABLE FOR SERVICE INTERRUPTIONS, DOWNTIME, OR DELAYS IN PROCESSING CAUSED BY FACTORS BEYOND OUR REASONABLE CONTROL.</li>
+            </ul>
           </section>
 
           <section>

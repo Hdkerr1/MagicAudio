@@ -63,28 +63,34 @@ const RefundPolicy = () => {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">3. Refund Policy</h2>
-            <h3 className="text-base font-medium text-foreground mb-1">3.1 Eligible for Refund</h3>
-            <div className="p-4 rounded-lg border border-accent/30 bg-accent/5 mb-3">
-              <p className="text-foreground font-medium">✅ Refund Window: 48 Hours</p>
+
+            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 mb-4">
+              <p className="text-foreground font-medium">⚠️ Digital Service — No Refunds After Successful Delivery</p>
+              <p className="mt-1">Once an audio file has been <strong>successfully processed and downloaded</strong> by the user, the digital service is considered fully delivered. <strong>No refunds will be issued</strong> for successfully completed processing jobs.</p>
             </div>
+
+            <h3 className="text-base font-medium text-foreground mb-1">3.1 Eligible for Refund</h3>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Within 48 hours of payment:</strong> Full refund if the service did not meet your expectations or you experienced technical issues preventing use.</li>
-              <li><strong>Persistent technical issues:</strong> If verified server-side or platform issues prevented you from using Premium features, a pro-rata refund will be calculated and issued.</li>
+              <li><strong>Technical failure during processing:</strong> If our platform experiences a verified server-side error that prevents your audio file from being processed or causes the output to be corrupted, silent, or materially defective (e.g., empty file, truncated output), you are entitled to a full refund for that transaction.</li>
+              <li><strong>Processing not completed:</strong> If you paid for a processing job that never completed due to a platform-side issue (not due to your internet connection or file format), a full refund will be issued.</li>
               <li><strong>Duplicate charges:</strong> Full refund for any accidental or erroneous duplicate payments.</li>
               <li><strong>Unauthorized transactions:</strong> Full refund for payments made without your authorization (subject to verification).</li>
+              <li><strong>Subscription — within 48 hours:</strong> Premium subscription payments may be refunded within 48 hours of purchase if no audio processing jobs have been completed under the subscription during that period.</li>
             </ul>
 
             <h3 className="text-base font-medium text-foreground mt-4 mb-1">3.2 Not Eligible for Refund</h3>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Partial month usage after the 48-hour refund window has passed.</li>
+              <li><strong>Successfully processed and downloaded files:</strong> Once you have downloaded the enhanced audio file, the service is deemed fully delivered. No refunds will be issued regardless of subjective dissatisfaction with the audio quality or output.</li>
+              <li>Dissatisfaction with the <strong>subjective quality</strong> of the audio output (e.g., "the remix doesn't sound how I expected"). Audio enhancement results vary based on source material and are inherently subjective.</li>
+              <li>Partial month usage after the 48-hour subscription refund window has passed.</li>
               <li>Change of mind or preference after the 48-hour period.</li>
               <li>Account suspension or termination due to violation of our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.</li>
               <li>Failure to use the service during the billing period (non-usage does not constitute grounds for a refund).</li>
-              <li>Issues caused by the user's browser, device, or internet connection.</li>
+              <li>Issues caused by the user's browser, device, internet connection, or unsupported file formats.</li>
             </ul>
 
-            <h3 className="text-base font-medium text-foreground mt-4 mb-1">3.3 One-Time Purchases (if applicable)</h3>
-            <p>For any future one-time purchase products: <strong>No refunds will be issued once the processed audio has been downloaded or exported.</strong> The download/export action constitutes full delivery of the digital product.</p>
+            <h3 className="text-base font-medium text-foreground mt-4 mb-1">3.3 Per-File / One-Time Purchases</h3>
+            <p>For any per-file or one-time purchase transactions: <strong>No refunds will be issued once the processed audio has been successfully downloaded or exported.</strong> The download/export action constitutes full delivery of the digital product and irrevocable acceptance of the service.</p>
           </section>
 
           <section>

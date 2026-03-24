@@ -124,7 +124,7 @@ const PrivacyPolicy = () => {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Account Data:</strong> Retained for the duration of your account. Deleted within 30 days of account deletion request.</li>
               <li><strong>Conversion History:</strong> Retained for 90 days for usage tracking, then automatically purged.</li>
-              <li><strong>Audio Files:</strong> Never stored. Zero retention. See Section 1.2.</li>
+              <li><strong>Audio Files:</strong> Temporarily stored for processing only. Automatically deleted within 24 hours or upon download completion. See Section 1.2.</li>
               <li><strong>Payment Records:</strong> Retained for 7 years as required by Indian tax and financial regulations.</li>
             </ul>
           </section>
