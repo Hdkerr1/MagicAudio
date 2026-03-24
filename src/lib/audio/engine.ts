@@ -768,12 +768,12 @@ export class AudioEngine {
     if (!this._bypassed) {
       switch (this.currentMode) {
         case 'slowed-reverb':
-        case '8d-spatial':
           this.buildSlowedReverbChain(); break;
         case 'remix':
-        case '3d-surround':
           this.buildRemixChain(); break;
         case 'lofi': this.buildLoFiChain(); break;
+        case '8d-spatial': this.build8DSpatialChain(); break;
+        case '3d-surround': this.build3DSurroundChain(); break;
       }
     }
     // In bypass mode, chainNodes stays empty → source connects directly to analyser
