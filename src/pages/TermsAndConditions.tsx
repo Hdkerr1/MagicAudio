@@ -39,11 +39,12 @@ const TermsAndConditions = () => {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">3. Description of Service</h2>
-            <p>TuneSence provides browser-based audio enhancement tools that apply real-time DSP (Digital Signal Processing) effects to user-provided audio files. All audio processing occurs <strong>client-side within the user's browser</strong>. The Platform:</p>
+            <p>TuneSence provides a cloud-based audio enhancement platform that applies professional-grade DSP (Digital Signal Processing) effects to user-uploaded audio files. Users upload their audio (e.g., MP3), our backend processes it using various audio engines, and users download the enhanced version. The Platform:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li>Does <strong>not</strong> host, store, distribute, or stream any audio content.</li>
+              <li>Temporarily stores uploaded audio files <strong>only for the duration of processing</strong>, after which they are automatically deleted (see our <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link> for details).</li>
               <li>Does <strong>not</strong> provide, supply, or recommend any music or copyrighted audio files.</li>
-              <li>Functions solely as a <strong>personal audio manipulation tool</strong>.</li>
+              <li>Does <strong>not</strong> use uploaded audio to train AI or machine learning models.</li>
+              <li>Functions solely as a <strong>professional audio enhancement tool</strong>.</li>
             </ul>
           </section>
 
