@@ -239,7 +239,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {modes.filter(m => m.premium).map((mode) => (
-            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} isPremiumUser={isPremium} />
           ))}
         </div>
       </div>

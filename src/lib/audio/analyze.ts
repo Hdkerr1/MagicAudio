@@ -294,18 +294,16 @@ export function autoTuneParams(analysis: AudioAnalysis): ModeParams {
       spatial: 0.35 + (1 - energy) * 0.2,
     },
     '8d-spatial': {
-      speed: 0.95,
-      reverbMix: 0.65 + brightness * 0.5,
-      reverbDecay: Math.min(8, Math.max(3, beat * (isSlow ? 8 : 6))),
-      spatial: 0.85 + brightness * 0.15,
+      rotationSpeed: isSlow ? 0.3 : isFast ? 0.7 : 0.5,
+      spatialDepth: 0.7 + brightness * 0.2,
+      reverbMix: 0.4 + brightness * 0.3,
+      distance: 0.4 + (1 - energy) * 0.3,
     },
     '3d-surround': {
-      bass: bassRatio > 0.4 ? 0.4 + (1 - bassRatio) * 0.3 : 0.55 + (1 - bassRatio) * 0.25,
-      presence: 0.5 + brightness * 0.3,
-      punch: 0.35 + dynamicRange * 0.25,
-      hall: isSlow ? 0.6 : 0.45 + dynamicRange * 0.2,
-      stereoWidth: 0.8 + dynamicRange * 0.2,
-      spatial: 0.8 + brightness * 0.15,
+      stereoWidth: 0.7 + dynamicRange * 0.25,
+      hallSize: isSlow ? 0.7 : isFast ? 0.4 : 0.55,
+      crossFeed: 0.35 + brightness * 0.2,
+      airiness: 0.4 + brightness * 0.3,
     },
   };
 }

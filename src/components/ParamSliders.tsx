@@ -39,18 +39,16 @@ const sliderDefs: Record<string, SliderDef[]> = {
     { key: 'spatial', label: '🎧 Spatial / Atmos', min: 0, max: 1, step: 0.01 },
   ],
   '8d-spatial': [
-    { key: 'speed', label: 'Speed', min: 0.8, max: 1.0, step: 0.01, unit: 'x' },
+    { key: 'rotationSpeed', label: '🌀 Rotation Speed', min: 0, max: 1, step: 0.01 },
+    { key: 'spatialDepth', label: '🎧 Spatial Depth', min: 0, max: 1, step: 0.01 },
     { key: 'reverbMix', label: 'Reverb Mix', min: 0, max: 1, step: 0.01 },
-    { key: 'reverbDecay', label: 'Reverb Decay', min: 1, max: 8, step: 0.5, unit: 's' },
-    { key: 'spatial', label: '🌀 8D Rotation', min: 0, max: 1, step: 0.01 },
+    { key: 'distance', label: '📏 Distance', min: 0, max: 1, step: 0.01 },
   ],
   '3d-surround': [
-    { key: 'bass', label: 'Bass', min: 0, max: 1, step: 0.01 },
-    { key: 'presence', label: 'Presence', min: 0, max: 1, step: 0.01 },
-    { key: 'punch', label: 'Punch', min: 0, max: 1, step: 0.01 },
-    { key: 'hall', label: 'Hall Size', min: 0, max: 1, step: 0.01 },
-    { key: 'stereoWidth', label: '🔊 Surround Width', min: 0, max: 1, step: 0.01 },
-    { key: 'spatial', label: '🎧 3D Depth', min: 0, max: 1, step: 0.01 },
+    { key: 'stereoWidth', label: '🔊 Stereo Width', min: 0, max: 1, step: 0.01 },
+    { key: 'hallSize', label: '🏛️ Hall Size', min: 0, max: 1, step: 0.01 },
+    { key: 'crossFeed', label: '🎧 Cross-Feed', min: 0, max: 1, step: 0.01 },
+    { key: 'airiness', label: '✨ Airiness', min: 0, max: 1, step: 0.01 },
   ],
 };
 
