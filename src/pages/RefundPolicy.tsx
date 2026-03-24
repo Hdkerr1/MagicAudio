@@ -11,7 +11,7 @@ const RefundPolicy = () => {
         </button>
         <h1 className="text-3xl font-bold mb-2">Refund & Cancellation Policy</h1>
         <p className="text-muted-foreground text-sm mb-2">Effective Date: March 9, 2026</p>
-        <p className="text-muted-foreground text-sm mb-8">Last Updated: March 9, 2026</p>
+        <p className="text-muted-foreground text-sm mb-8">Last Updated: March 24, 2026</p>
 
         <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
           <p>
