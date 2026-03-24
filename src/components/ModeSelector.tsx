@@ -226,7 +226,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
       {/* Standard modes */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
         {modes.filter(m => !m.premium).map((mode) => (
-          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
+          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} isPremiumUser={isPremium} />
         ))}
       </div>
 
