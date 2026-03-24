@@ -163,6 +163,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
   const [showDemos, setShowDemos] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { isPremium } = useUsageLimit();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4 py-12">
