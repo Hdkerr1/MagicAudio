@@ -97,14 +97,26 @@ const modes: ModeCardDef[] = [
   },
 ];
 
-function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void }) {
+function ModeCard({ mode, onSelect, isPremiumUser }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void; isPremiumUser: boolean }) {
   const Icon = mode.icon;
+  const navigate = useNavigate();
+  const locked = mode.premium && !isPremiumUser;
+
+  const handleClick = () => {
+    if (locked) {
+      navigate('/pricing');
+      return;
+    }
+    onSelect(mode.id);
+  };
+
   return (
     <button
-      onClick={() => onSelect(mode.id)}
+      onClick={handleClick}
       className={`
         group relative p-6 rounded-2xl border border-border/60 glass
         transition-all duration-300 text-left
+        ${locked ? 'opacity-70 hover:opacity-90' : ''}
         hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
       `}
     >
@@ -129,14 +141,18 @@ function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: Proces
         {mode.description}
       </p>
       {mode.premium && (
-        <Badge className="absolute top-6 right-14 bg-primary/20 text-primary border-primary/30 text-[10px]">
-          Premium
+        <Badge className={`absolute top-6 right-14 text-[10px] ${locked ? 'bg-muted text-muted-foreground border-border' : 'bg-primary/20 text-primary border-primary/30'}`}>
+          {locked ? <><Lock className="w-3 h-3 mr-1" />Premium</> : 'Premium'}
         </Badge>
       )}
       <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
+        {locked ? (
+          <Lock className="w-5 h-5 text-muted-foreground" />
+        ) : (
+          <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        )}
       </div>
     </button>
   );
