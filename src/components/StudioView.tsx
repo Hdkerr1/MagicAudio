@@ -1,10 +1,11 @@
-import { Music, ArrowLeft, Waves, Volume2, Radio } from 'lucide-react';
+import { Music, ArrowLeft, Waves, Volume2, Radio, Orbit, Speaker } from 'lucide-react';
 import UsageBadge from './UsageBadge';
 import { getModeAccentColor } from './ModeToggle';
 import PlayerControls from './PlayerControls';
 import Visualizer from './Visualizer';
 import ParamSliders from './ParamSliders';
 import Waveform from './Waveform';
+import HamburgerMenu from './HamburgerMenu';
 import type { PlaybackMode, ModeParams } from '@/lib/audio/engine';
 import type { EngineState } from '@/lib/audio/engine';
 import { useEffect, useCallback } from 'react';
@@ -13,6 +14,8 @@ const modeInfo: Record<string, { label: string; icon: typeof Waves; colorClass: 
   'slowed-reverb': { label: 'Slowed + Reverb', icon: Waves, colorClass: 'text-primary', bgClass: 'bg-primary/15 border-primary/40' },
   'remix': { label: 'Remix', icon: Volume2, colorClass: 'text-accent', bgClass: 'bg-accent/15 border-accent/40' },
   'lofi': { label: 'Vintage Lo-Fi', icon: Radio, colorClass: 'text-glow-warm', bgClass: 'bg-glow-warm/15 border-glow-warm/40' },
+  '8d-spatial': { label: '8D Spatial', icon: Orbit, colorClass: 'text-primary', bgClass: 'bg-primary/15 border-primary/40' },
+  '3d-surround': { label: '3D Surround', icon: Speaker, colorClass: 'text-accent', bgClass: 'bg-accent/15 border-accent/40' },
 };
 
 interface StudioViewProps {
@@ -43,28 +46,13 @@ const StudioView = ({
   const currentMode = state.mode ? modeInfo[state.mode] : null;
   const ModeIcon = currentMode?.icon || Waves;
 
-  // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Don't trigger if user is typing in an input
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
     switch (e.code) {
-      case 'Space':
-        e.preventDefault();
-        onTogglePlay();
-        break;
-      case 'KeyB':
-        e.preventDefault();
-        onToggleBypass();
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        onSeek(Math.max(0, state.currentTime - 5));
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        onSeek(Math.min(state.duration, state.currentTime + 5));
-        break;
+      case 'Space': e.preventDefault(); onTogglePlay(); break;
+      case 'KeyB': e.preventDefault(); onToggleBypass(); break;
+      case 'ArrowLeft': e.preventDefault(); onSeek(Math.max(0, state.currentTime - 5)); break;
+      case 'ArrowRight': e.preventDefault(); onSeek(Math.min(state.duration, state.currentTime + 5)); break;
     }
   }, [onTogglePlay, onToggleBypass, onSeek, state.currentTime, state.duration]);
 
@@ -75,7 +63,6 @@ const StudioView = ({
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-hero">
-      {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-primary/4 blur-[150px]" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/4 blur-[120px]" />
@@ -83,7 +70,8 @@ const StudioView = ({
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-4 md:px-6 py-3 border-b border-border/30">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <HamburgerMenu />
           <button
             onClick={onBackToModes}
             className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors active:scale-95"
@@ -92,7 +80,7 @@ const StudioView = ({
             <span className="text-sm hidden sm:inline">Change Mode</span>
           </button>
           <div className="h-4 w-px bg-border/40 hidden sm:block" />
-          <div className="flex items-center gap-2 hidden sm:flex">
+          <div className="hidden sm:flex items-center gap-2">
             <div className="p-1 rounded-lg bg-primary/10">
               <Music className="w-4 h-4 text-primary" />
             </div>
@@ -102,14 +90,11 @@ const StudioView = ({
 
         <div className="flex items-center gap-2 md:gap-3">
           <UsageBadge />
-          {/* A/B Toggle pill */}
           <div className="flex rounded-full border border-border/50 overflow-hidden">
             <button
               onClick={() => onSetBypass(true)}
               className={`px-2.5 md:px-3 py-1.5 text-xs md:text-sm font-semibold transition-colors duration-150 select-none active:scale-95 ${
-                bypassed
-                  ? 'bg-primary/15 text-primary'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+                bypassed ? 'bg-primary/15 text-primary' : 'bg-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               Original
@@ -117,9 +102,7 @@ const StudioView = ({
             <button
               onClick={() => onSetBypass(false)}
               className={`px-2.5 md:px-3 py-1.5 text-xs md:text-sm font-semibold transition-colors duration-150 select-none active:scale-95 ${
-                !bypassed
-                  ? 'bg-primary/15 text-primary'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+                !bypassed ? 'bg-primary/15 text-primary' : 'bg-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               Processed
@@ -143,25 +126,14 @@ const StudioView = ({
         </div>
       </header>
 
-      {/* Main content: visualizer + params side by side */}
+      {/* Main content */}
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-stretch gap-3 p-3 md:p-4">
-        {/* Visualizer */}
         <div className="w-full lg:flex-1 h-40 md:h-56 lg:h-auto rounded-2xl overflow-hidden glass">
-          <Visualizer
-            getAnalyser={getAnalyser}
-            isPlaying={state.isPlaying}
-            accentColor={accentColor}
-          />
+          <Visualizer getAnalyser={getAnalyser} isPlaying={state.isPlaying} accentColor={accentColor} />
         </div>
-
-        {/* Parameter sliders */}
         {state.mode && (
           <div className="w-full lg:w-72 shrink-0">
-            <ParamSliders
-              mode={state.mode}
-              params={params}
-              onParamChange={onParamChange}
-            />
+            <ParamSliders mode={state.mode} params={params} onParamChange={onParamChange} />
           </div>
         )}
       </div>
@@ -169,32 +141,15 @@ const StudioView = ({
       {/* Player */}
       <div className="relative z-10 px-3 md:px-4 pb-4 pt-2">
         <div className="max-w-2xl mx-auto space-y-2">
-          {/* Waveform */}
           <div className="glass rounded-xl p-2.5">
-            <Waveform
-              getAudioBuffer={getAudioBuffer}
-              currentTime={state.currentTime}
-              duration={state.duration}
-              onSeek={onSeek}
-              accentColor={accentColor}
-            />
+            <Waveform getAudioBuffer={getAudioBuffer} currentTime={state.currentTime} duration={state.duration} onSeek={onSeek} accentColor={accentColor} />
           </div>
-
           <PlayerControls
-            isPlaying={state.isPlaying}
-            currentTime={state.currentTime}
-            duration={state.duration}
-            mode={state.mode}
-            fileName={fileName}
-            isExporting={isExporting}
-            onTogglePlay={onTogglePlay}
-            onSeek={onSeek}
-            onExport={onExport}
-            onReset={onReset}
+            isPlaying={state.isPlaying} currentTime={state.currentTime} duration={state.duration}
+            mode={state.mode} fileName={fileName} isExporting={isExporting}
+            onTogglePlay={onTogglePlay} onSeek={onSeek} onExport={onExport} onReset={onReset}
           />
         </div>
-
-        {/* Keyboard shortcut hints */}
         <div className="hidden md:flex items-center justify-center gap-4 mt-3 text-[10px] font-mono text-muted-foreground/50">
           <span><kbd className="px-1.5 py-0.5 rounded border border-border/40 bg-secondary/30 text-muted-foreground/60">Space</kbd> Play/Pause</span>
           <span><kbd className="px-1.5 py-0.5 rounded border border-border/40 bg-secondary/30 text-muted-foreground/60">B</kbd> Bypass</span>
