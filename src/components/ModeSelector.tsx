@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Lock } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import UsageBadge from './UsageBadge';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { useUsageLimit } from '@/hooks/useUsageLimit';
+import HamburgerMenu from './HamburgerMenu';
 
 export const demoTracks = [
   { id: 'babel', name: 'Babel Visualizer', artist: 'Gustavo Bravetti', file: '/demo/Gustavo_Bravetti_-_Babel_Visualizer.mp3' },
@@ -32,7 +32,7 @@ interface ModeCardDef {
   bgAccent: string;
   glowHover: string;
   headphonesRecommended?: boolean;
-  premium?: boolean;
+  spatial?: boolean;
 }
 
 const modes: ModeCardDef[] = [
@@ -80,7 +80,7 @@ const modes: ModeCardDef[] = [
     bgAccent: 'bg-primary/10',
     glowHover: 'hover:shadow-[0_0_30px_hsl(270_95%_60%/0.2)]',
     headphonesRecommended: true,
-    premium: true,
+    spatial: true,
   },
   {
     id: '3d-surround',
@@ -93,30 +93,19 @@ const modes: ModeCardDef[] = [
     bgAccent: 'bg-accent/10',
     glowHover: 'hover:shadow-[0_0_30px_hsl(185_100%_50%/0.2)]',
     headphonesRecommended: true,
-    premium: true,
+    spatial: true,
   },
 ];
 
-function ModeCard({ mode, onSelect, isPremiumUser }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void; isPremiumUser: boolean }) {
+function ModeCard({ mode, onSelect }: { mode: ModeCardDef; onSelect: (id: ProcessingMode) => void }) {
   const Icon = mode.icon;
-  const navigate = useNavigate();
-  const locked = mode.premium && !isPremiumUser;
-
-  const handleClick = () => {
-    if (locked) {
-      navigate('/pricing');
-      return;
-    }
-    onSelect(mode.id);
-  };
 
   return (
     <button
-      onClick={handleClick}
+      onClick={() => onSelect(mode.id)}
       className={`
         group relative p-6 rounded-2xl border border-border/60 glass
         transition-all duration-300 text-left
-        ${locked ? 'opacity-70 hover:opacity-90' : ''}
         hover:scale-[1.03] active:scale-[0.98] ${mode.borderClass} ${mode.glowHover}
       `}
     >
@@ -140,19 +129,10 @@ function ModeCard({ mode, onSelect, isPremiumUser }: { mode: ModeCardDef; onSele
       <p className="text-sm text-muted-foreground leading-relaxed">
         {mode.description}
       </p>
-      {mode.premium && (
-        <Badge className={`absolute top-6 right-14 text-[10px] ${locked ? 'bg-muted text-muted-foreground border-border' : 'bg-primary/20 text-primary border-primary/30'}`}>
-          {locked ? <><Lock className="w-3 h-3 mr-1" />Premium</> : 'Premium'}
-        </Badge>
-      )}
       <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        {locked ? (
-          <Lock className="w-5 h-5 text-muted-foreground" />
-        ) : (
-          <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        )}
+        <svg className={`w-5 h-5 ${mode.iconColor}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
       </div>
     </button>
   );
@@ -163,13 +143,12 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
   const [showDemos, setShowDemos] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { isPremium } = useUsageLimit();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-hero px-4 py-12">
       {/* Top bar */}
       <div className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-4 md:px-6 py-3">
-        <div />
+        <HamburgerMenu onModeSelect={onModeSelect} />
         <div className="flex items-center gap-2">
           <UsageBadge />
           {user ? (
@@ -213,7 +192,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
         </h2>
         {isLanding && (
           <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
-            Select an effect, then upload your track
+            Select an effect, then upload your track (up to 5 at a time)
           </p>
         )}
         {!isLanding && (
@@ -225,21 +204,21 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
 
       {/* Standard modes */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl">
-        {modes.filter(m => !m.premium).map((mode) => (
-          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} isPremiumUser={isPremium} />
+        {modes.filter(m => !m.spatial).map((mode) => (
+          <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
         ))}
       </div>
 
-      {/* Premium spatial modes */}
+      {/* Spatial modes */}
       <div className="relative z-10 w-full max-w-4xl mt-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-border/40" />
-          <span className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">Premium Spatial</span>
+          <span className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">Spatial Audio</span>
           <div className="h-px flex-1 bg-border/40" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {modes.filter(m => m.premium).map((mode) => (
-            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} isPremiumUser={isPremium} />
+          {modes.filter(m => m.spatial).map((mode) => (
+            <ModeCard key={mode.id} mode={mode} onSelect={onModeSelect} />
           ))}
         </div>
       </div>
@@ -291,7 +270,7 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
 
       {/* Footer */}
       <p className="relative z-10 mt-8 text-xs text-muted-foreground/40 font-mono">
-        Studio-grade processing · Real-time preview · No uploads to server
+        Studio-grade processing · Real-time preview · All 5 engines free (5/day)
       </p>
     </div>
   );
