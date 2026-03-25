@@ -135,7 +135,7 @@ const Pricing = () => {
             <span className="text-muted-foreground text-sm">/month</span>
           </div>
           <ul className="space-y-3 mb-6">
-            {['Unlimited conversions', 'All 3 audio modes', 'Real-time preview', 'MP3 export', 'Priority processing', 'Early access to new modes'].map((f) => (
+            {['Unlimited conversions', 'All 5 audio engines', 'Real-time preview', 'MP3 export', 'Song library', 'Priority processing', 'Batch convert (5 at once)', 'Early access to new modes'].map((f) => (
               <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check className="w-4 h-4 text-primary shrink-0" />
                 {f}
