@@ -56,10 +56,10 @@ export function audioBufferToWav(buffer: AudioBuffer): Blob {
 }
 
 /**
- * Encode an AudioBuffer to high-quality MP3 (192kbps) using lamejs.
- * Keeps file size roughly 10x smaller than WAV while maintaining quality.
+ * Encode an AudioBuffer to high-quality MP3 (320kbps) using lamejs.
+ * Uses larger block sizes for faster encoding.
  */
-export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 192): Blob {
+export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 320): Blob {
   const numChannels = Math.min(buffer.numberOfChannels, 2);
   const sampleRate = buffer.sampleRate;
   const samples = buffer.length;
@@ -73,7 +73,9 @@ export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 192): Blob {
       if (abs > peak) peak = abs;
     }
   }
-  const gain = peak > 1.0 ? 0.95 / peak : 1.0;
+  // Normalize to -0.3dBFS for loudness without clipping
+  const targetPeak = 0.93;
+  const gain = peak > 0.01 ? targetPeak / peak : 1.0;
 
   // Convert float32 channels to Int16 arrays
   const left = new Int16Array(samples);
@@ -89,12 +91,11 @@ export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 192): Blob {
     }
   }
 
-  // Estimate bitrate needed to stay under 10MB
+  // Dynamic bitrate: use highest quality that fits under 10MB
   const durationSec = samples / sampleRate;
   const maxBytes = 10 * 1024 * 1024; // 10MB
   const maxKbps = Math.floor((maxBytes * 8) / (durationSec * 1000));
   const kbps = Math.min(targetKbps, maxKbps);
-  // Clamp to valid MP3 bitrates, minimum 128 for quality
   const validBitrates = [128, 160, 192, 224, 256, 320];
   const finalKbps = validBitrates.reduce((prev, curr) =>
     Math.abs(curr - kbps) < Math.abs(prev - kbps) ? curr : prev
@@ -102,11 +103,13 @@ export function audioBufferToMp3(buffer: AudioBuffer, targetKbps = 192): Blob {
 
   const encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, finalKbps);
   const mp3Chunks: Uint8Array[] = [];
-  const blockSize = 1152;
+  // Use larger block size for faster encoding (8x bigger chunks)
+  const blockSize = 1152 * 8;
 
   for (let i = 0; i < samples; i += blockSize) {
-    const leftChunk = left.subarray(i, Math.min(i + blockSize, samples));
-    const rightChunk = right ? right.subarray(i, Math.min(i + blockSize, samples)) : leftChunk;
+    const end = Math.min(i + blockSize, samples);
+    const leftChunk = left.subarray(i, end);
+    const rightChunk = right ? right.subarray(i, end) : leftChunk;
 
     let mp3buf: Uint8Array;
     if (numChannels === 1) {
