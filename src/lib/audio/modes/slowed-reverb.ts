@@ -26,9 +26,6 @@ function computeNoiseGateEnvelope(buffer: AudioBuffer, thresholdDb: number): Flo
   return env;
 }
 
-/**
- * Apply noise gate to buffer, returning a clean copy.
- */
 function applyNoiseGate(buffer: AudioBuffer, ctx: OfflineAudioContext, thresholdDb: number): AudioBuffer {
   const gateEnv = computeNoiseGateEnvelope(buffer, thresholdDb);
   const clean = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
@@ -81,6 +78,38 @@ function generateReverbIR(sampleRate: number, duration: number): AudioBuffer {
   return ir;
 }
 
+/**
+ * Apply subtle stereo chorus for richness (adds uniqueness to output).
+ */
+function applyChorus(buffer: AudioBuffer): AudioBuffer {
+  const sr = buffer.sampleRate;
+  const length = buffer.length;
+  const numCh = buffer.numberOfChannels;
+  const ctx = new OfflineAudioContext(numCh, length, sr);
+  const out = ctx.createBuffer(numCh, length, sr);
+
+  for (let ch = 0; ch < numCh; ch++) {
+    const src = buffer.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    const chorusDepth = (ch === 0 ? 0.0015 : 0.0018) * sr; // ~1.5-1.8ms
+    const chorusRate = ch === 0 ? 0.5 : 0.7; // Hz
+
+    for (let i = 0; i < length; i++) {
+      const t = i / sr;
+      const modDelay = chorusDepth * (0.5 + 0.5 * Math.sin(2 * Math.PI * chorusRate * t));
+      const readPos = i - modDelay;
+      if (readPos >= 0 && readPos < length - 1) {
+        const idx = Math.floor(readPos);
+        const frac = readPos - idx;
+        dst[i] = src[i] * 0.75 + (src[idx] * (1 - frac) + src[Math.min(idx + 1, length - 1)] * frac) * 0.25;
+      } else {
+        dst[i] = src[i];
+      }
+    }
+  }
+  return out;
+}
+
 export async function processSlowedReverb(
   buffer: AudioBuffer,
   onProgress: ProgressCallback,
@@ -94,13 +123,13 @@ export async function processSlowedReverb(
   const energy = analysis?.energy ?? 0.5;
   const gateThreshDb = energy > 0.5 ? -55 : -48;
 
-  // Adaptive: sync reverb decay to beat timing
   const beatSec = 60 / bpm;
   const reverbDuration = Math.min(7, Math.max(3, beatSec * (bpm > 130 ? 5 : 7)));
 
   onProgress({ stage: 'Pitch-shifting with cubic interpolation...', percent: 10 });
 
-  const slowFactor = 1.15;
+  // Stronger slow factor for more transformative output
+  const slowFactor = 1.18;
   const newLength = Math.ceil(buffer.length * slowFactor);
   const reverbTail = buffer.sampleRate * Math.ceil(reverbDuration);
 
@@ -110,7 +139,6 @@ export async function processSlowedReverb(
     buffer.sampleRate
   );
 
-  // Noise gate the source first
   const cleanBuffer = applyNoiseGate(buffer, offlineCtx, gateThreshDb);
 
   // High-quality Hermite resampling
@@ -127,61 +155,64 @@ export async function processSlowedReverb(
     }
   }
 
+  onProgress({ stage: 'Adding stereo chorus layer...', percent: 25 });
+  const chorusedBuffer = applyChorus(slowedBuffer);
+
   onProgress({ stage: 'Generating beat-synced reverb...', percent: 30 });
   const reverbIR = generateReverbIR(buffer.sampleRate, reverbDuration);
 
   onProgress({ stage: 'Shaping adaptive EQ...', percent: 45 });
 
   const source = offlineCtx.createBufferSource();
-  source.buffer = slowedBuffer;
+  source.buffer = chorusedBuffer;
 
   // === Adaptive EQ ===
-  // Sub rumble removal
   const subCut = offlineCtx.createBiquadFilter();
   subCut.type = 'highpass'; subCut.frequency.value = 28; subCut.Q.value = 0.5;
 
-  // Bass warmth — less on bass-heavy tracks
   const bassWarmth = offlineCtx.createBiquadFilter();
   bassWarmth.type = 'lowshelf'; bassWarmth.frequency.value = 120;
-  bassWarmth.gain.value = bassRatio > 0.4 ? 0.5 : 2;
+  bassWarmth.gain.value = bassRatio > 0.4 ? 0.5 : 2.5;
 
-  // Mud cut
   const mudCut = offlineCtx.createBiquadFilter();
   mudCut.type = 'peaking'; mudCut.frequency.value = 350;
-  mudCut.gain.value = -1.5; mudCut.Q.value = 1.5;
+  mudCut.gain.value = -2; mudCut.Q.value = 1.5;
 
-  // Pre-reverb presence — adaptive to brightness
+  // Presence — adaptive to brightness
   const presence = offlineCtx.createBiquadFilter();
   presence.type = 'peaking'; presence.frequency.value = 3000;
   presence.gain.value = brightness < 0.15 ? 2.5 : 1.5; presence.Q.value = 1.0;
 
-  // De-harsh
   const deHarsh = offlineCtx.createBiquadFilter();
   deHarsh.type = 'peaking'; deHarsh.frequency.value = 5500;
-  deHarsh.gain.value = -1.5; deHarsh.Q.value = 2;
+  deHarsh.gain.value = -2; deHarsh.Q.value = 2;
 
   // Post-reverb low-pass — darker tail for lush character
   const postLP = offlineCtx.createBiquadFilter();
-  postLP.type = 'lowpass'; postLP.frequency.value = 11000; postLP.Q.value = 0.5;
+  postLP.type = 'lowpass'; postLP.frequency.value = 10000; postLP.Q.value = 0.5;
 
-  // Ultra-high cut
   const ultraCut = offlineCtx.createBiquadFilter();
-  ultraCut.type = 'lowpass'; ultraCut.frequency.value = 18000; ultraCut.Q.value = 0.5;
+  ultraCut.type = 'lowpass'; ultraCut.frequency.value = 17000; ultraCut.Q.value = 0.5;
+
+  // Additional pitch character: subtle formant shift via allpass
+  const formantL = offlineCtx.createBiquadFilter();
+  formantL.type = 'allpass'; formantL.frequency.value = 800; formantL.Q.value = 2;
+  const formantR = offlineCtx.createBiquadFilter();
+  formantR.type = 'allpass'; formantR.frequency.value = 1200; formantR.Q.value = 2;
 
   onProgress({ stage: 'Applying convolution reverb...', percent: 55 });
 
   const convolver = offlineCtx.createConvolver();
   convolver.buffer = reverbIR;
 
-  // Reverb send pre-filter
   const reverbPreHP = offlineCtx.createBiquadFilter();
   reverbPreHP.type = 'highpass'; reverbPreHP.frequency.value = 200; reverbPreHP.Q.value = 0.5;
 
-  // Wet/dry mix
+  // Wet/dry mix — stronger reverb
   const dryGain = offlineCtx.createGain();
-  dryGain.gain.value = 0.50;
+  dryGain.gain.value = 0.45;
   const wetGain = offlineCtx.createGain();
-  wetGain.gain.value = 0.60;
+  wetGain.gain.value = 0.65;
 
   // Master compression
   const compressor = offlineCtx.createDynamicsCompressor();
@@ -196,16 +227,17 @@ export async function processSlowedReverb(
   limiter.release.value = 0.04;
 
   const masterGain = offlineCtx.createGain();
-  masterGain.gain.value = 0.88;
+  masterGain.gain.value = 0.90;
 
   // === Routing ===
-  // EQ chain
   source.connect(subCut);
   subCut.connect(bassWarmth);
   bassWarmth.connect(mudCut);
   mudCut.connect(presence);
   presence.connect(deHarsh);
-  deHarsh.connect(ultraCut);
+  deHarsh.connect(formantL);
+  formantL.connect(formantR);
+  formantR.connect(ultraCut);
 
   // Dry path
   ultraCut.connect(dryGain);
