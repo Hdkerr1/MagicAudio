@@ -49,16 +49,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_SECRET) throw new Error("RAZORPAY_KEY_SECRET is not configured");
@@ -97,8 +96,8 @@ serve(async (req) => {
       .update({
         is_premium: true,
         subscription_status: "active",
-        stripe_customer_id: razorpay_payment_id, // reusing column for razorpay payment id
-        stripe_subscription_id: razorpay_order_id, // reusing column for razorpay order id
+        stripe_customer_id: razorpay_payment_id,
+        stripe_subscription_id: razorpay_order_id,
       })
       .eq("id", userId);
 
