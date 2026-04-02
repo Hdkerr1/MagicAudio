@@ -15,6 +15,8 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import DMCAPolicy from "./pages/DMCAPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import ContactUs from "./pages/ContactUs";
+import ForgeMashup from "./pages/ForgeMashup";
+import ForgeSpatial from "./pages/ForgeSpatial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +39,8 @@ const App = () => (
             <Route path="/dmca" element={<DMCAPolicy />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
+            <Route path="/forge/mashup" element={<ForgeMashup />} />
+            <Route path="/forge/spatial" element={<ForgeSpatial />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
