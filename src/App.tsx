@@ -39,6 +39,8 @@ const App = () => (
             <Route path="/dmca" element={<DMCAPolicy />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/contact" element={<ContactUs />} />
+            <Route path="/forge/mashup" element={<ForgeMashup />} />
+            <Route path="/forge/spatial" element={<ForgeSpatial />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
