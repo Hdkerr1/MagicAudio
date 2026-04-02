@@ -15,6 +15,8 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import DMCAPolicy from "./pages/DMCAPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import ContactUs from "./pages/ContactUs";
+import ForgeMashup from "./pages/ForgeMashup";
+import ForgeSpatial from "./pages/ForgeSpatial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
