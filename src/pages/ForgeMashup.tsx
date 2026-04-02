@@ -3,21 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Trash2, Sparkles, Play, Pause, Download, Music, ChevronDown, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ForgeLayout from '@/components/forge/ForgeLayout';
+import { generateMashup } from '@/lib/audio/mashup';
+import { audioBufferToMp3 } from '@/lib/audio/encode';
 
 const GENRES = ['Lo-Fi', 'EDM', 'Pop', 'Hip-Hop', 'R&B', 'Trap', 'House', 'Drum & Bass'];
 const MAX_FILES = 10;
 
 const PROGRESS_STEPS = [
-  { label: 'Analyzing tracks & extracting features...', duration: 1200 },
-  { label: 'Isolating best vocals with AI separation...', duration: 1200 },
-  { label: 'Beat-matching all tracks to single tune...', duration: 1200 },
-  { label: 'Final mastering & loudness normalization...', duration: 1400 },
+  { label: 'Analyzing tracks & extracting features...' },
+  { label: 'Isolating best vocals with AI separation...' },
+  { label: 'Beat-matching all tracks to single tune...' },
+  { label: 'Final mastering & loudness normalization...' },
 ];
-
-async function mockGenerateMashup(_files: File[], _genre: string): Promise<string> {
-  await new Promise((r) => setTimeout(r, 5000));
-  return '/placeholder.svg'; // placeholder — swap with real API blob URL
-}
 
 export default function ForgeMashup() {
   const [files, setFiles] = useState<File[]>([]);
@@ -28,8 +25,10 @@ export default function ForgeMashup() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [progress, setProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resultBlobRef = useRef<Blob | null>(null);
 
   const addFiles = useCallback((incoming: File[]) => {
     const audio = incoming.filter((f) => f.type.startsWith('audio/'));
@@ -63,20 +62,25 @@ export default function ForgeMashup() {
     setProcessing(true);
     setStepIdx(0);
     setResultUrl(null);
-
-    // Animate steps
-    let cumulative = 0;
-    for (let i = 0; i < PROGRESS_STEPS.length; i++) {
-      await new Promise((r) => setTimeout(r, cumulative === 0 ? 0 : PROGRESS_STEPS[i - 1].duration));
-      cumulative += PROGRESS_STEPS[i].duration;
-      setStepIdx(i);
-    }
+    setProgress(0);
+    resultBlobRef.current = null;
 
     try {
-      const url = await mockGenerateMashup(files, genre);
+      const mashupBuffer = await generateMashup(files, genre, (step, _label) => {
+        setStepIdx(step);
+        setProgress(Math.round(((step + 1) / PROGRESS_STEPS.length) * 85));
+      });
+
+      setProgress(90);
+      const mp3Blob = audioBufferToMp3(mashupBuffer);
+      setProgress(100);
+      
+      resultBlobRef.current = mp3Blob;
+      const url = URL.createObjectURL(mp3Blob);
       setResultUrl(url);
       toast.success('Mashup generated successfully!');
-    } catch {
+    } catch (err) {
+      console.error('Mashup generation failed:', err);
       toast.error('Generation failed — try again');
     } finally {
       setProcessing(false);
@@ -88,6 +92,14 @@ export default function ForgeMashup() {
     if (playing) audioRef.current.pause();
     else audioRef.current.play();
     setPlaying(!playing);
+  };
+
+  const handleDownload = () => {
+    if (!resultUrl) return;
+    const a = document.createElement('a');
+    a.href = resultUrl;
+    a.download = `mashup_${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Date.now()}.mp3`;
+    a.click();
   };
 
   return (
@@ -223,7 +235,7 @@ export default function ForgeMashup() {
             {processing ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                Processing...
+                Processing... {progress}%
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -261,6 +273,15 @@ export default function ForgeMashup() {
                   <span className={`text-sm ${i <= stepIdx ? 'text-foreground' : 'text-muted-foreground'}`}>{step.label}</span>
                 </motion.div>
               ))}
+              {/* Progress bar */}
+              <div className="w-full h-2 bg-secondary/40 rounded-full overflow-hidden mt-2">
+                <motion.div
+                  className="h-full bg-primary rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -280,7 +301,10 @@ export default function ForgeMashup() {
                 </div>
                 <div>
                   <p className="text-foreground font-semibold">AI Generated Mashup</p>
-                  <p className="text-xs text-muted-foreground font-mono">{genre} • {files.length} tracks blended</p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {genre} • {files.length} tracks blended
+                    {resultBlobRef.current && ` • ${(resultBlobRef.current.size / (1024 * 1024)).toFixed(1)} MB`}
+                  </p>
                 </div>
               </div>
 
@@ -293,21 +317,13 @@ export default function ForgeMashup() {
                 <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full w-1/3 bg-primary rounded-full" />
                 </div>
-                <a
-                  href={resultUrl}
-                  download="mashup.mp3"
+                <button
+                  onClick={handleDownload}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent/15 text-accent font-semibold text-sm hover:bg-accent/25 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  Download
-                </a>
-              </div>
-
-              <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-glow-warm/5 border border-glow-warm/20">
-                <AlertCircle className="w-4 h-4 text-glow-warm shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground">
-                  This is a mock demo. Connect your real API endpoint at <code className="text-foreground">/api/generate-mashup</code> to enable live mashup generation.
-                </p>
+                  Download MP3
+                </button>
               </div>
             </motion.div>
           )}
