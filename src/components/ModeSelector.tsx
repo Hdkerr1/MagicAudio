@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
@@ -222,6 +222,57 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
           ))}
         </div>
       </div>
+
+      {/* AI Forge Tools */}
+      {isLanding && (
+        <div className="relative z-10 w-full max-w-4xl mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-border/40" />
+            <span className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">AI Forge Tools</span>
+            <div className="h-px flex-1 bg-border/40" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <button
+              onClick={() => navigate('/forge/mashup')}
+              className="group relative p-6 rounded-2xl border border-border/60 glass transition-all duration-300 text-left hover:scale-[1.03] active:scale-[0.98] hover:border-primary/50 hover:shadow-[0_0_30px_hsl(270_95%_60%/0.2)]"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-primary/10 w-fit transition-transform duration-300 group-hover:scale-110">
+                  <Layers className="w-6 h-6 text-primary" />
+                </div>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">AI Powered</Badge>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-1">AI Auto-Mashup Engine</h3>
+              <p className="text-xs font-mono text-primary mb-3 opacity-70">Multi-Track Fusion</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Upload up to 10 tracks and let AI create a professional mashup with beat-matching, vocal isolation, and genre-specific mastering.</p>
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ArrowRight className="w-5 h-5 text-primary" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/forge/spatial')}
+              className="group relative p-6 rounded-2xl border border-border/60 glass transition-all duration-300 text-left hover:scale-[1.03] active:scale-[0.98] hover:border-accent/50 hover:shadow-[0_0_30px_hsl(185_100%_50%/0.2)]"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-accent/10 w-fit transition-transform duration-300 group-hover:scale-110">
+                  <Globe className="w-6 h-6 text-accent" />
+                </div>
+                <Badge variant="outline" className="flex items-center gap-1 text-[10px] border-accent/30 text-accent">
+                  <Headphones className="w-3 h-3" />
+                  YouTube Link
+                </Badge>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-1">YouTube → Spatial Audio</h3>
+              <p className="text-xs font-mono text-accent mb-3 opacity-70">Link-to-3D/8D Converter</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Paste any YouTube link and convert it into immersive 3D/8D spatial audio with professional-grade spatial engines.</p>
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ArrowRight className="w-5 h-5 text-accent" />
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Try Demo Section */}
       {isLanding && onDemoSelect && (
