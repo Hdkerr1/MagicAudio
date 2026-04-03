@@ -1,23 +1,29 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Trash2, Sparkles, Play, Pause, Download, Music, ChevronDown, AlertCircle } from 'lucide-react';
+import { Upload, Trash2, Sparkles, Play, Pause, Download, Music, ChevronDown, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ForgeLayout from '@/components/forge/ForgeLayout';
 import { generateMashup } from '@/lib/audio/mashup';
 import { audioBufferToMp3 } from '@/lib/audio/encode';
+import { Slider } from '@/components/ui/slider';
 
 const GENRES = ['Lo-Fi', 'EDM', 'Pop', 'Hip-Hop', 'R&B', 'Trap', 'House', 'Drum & Bass'];
 const MAX_FILES = 10;
 
-const PROGRESS_STEPS = [
-  { label: 'Analyzing tracks & extracting features...' },
-  { label: 'Isolating best vocals with AI separation...' },
-  { label: 'Beat-matching all tracks to single tune...' },
-  { label: 'Final mastering & loudness normalization...' },
+const TERMINAL_STEPS = [
+  { label: '> Analyzing frequencies and extracting metadata...', icon: '🔬' },
+  { label: '> Applying Source Separation (Vocals/Stems)...', icon: '🎤' },
+  { label: '> Aligning BPM and Key signatures...', icon: '🎵' },
+  { label: '> Final mastering & loudness normalization...', icon: '🎛️' },
 ];
 
+interface TrackFile {
+  file: File;
+  volume: number; // 0-100
+}
+
 export default function ForgeMashup() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [tracks, setTracks] = useState<TrackFile[]>([]);
   const [genre, setGenre] = useState(GENRES[0]);
   const [genreOpen, setGenreOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -26,9 +32,26 @@ export default function ForgeMashup() {
   const [playing, setPlaying] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const resultBlobRef = useRef<Blob | null>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll terminal
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalLines]);
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+    };
+  }, [resultUrl]);
 
   const addFiles = useCallback((incoming: File[]) => {
     const audio = incoming.filter((f) => f.type.startsWith('audio/'));
@@ -36,8 +59,8 @@ export default function ForgeMashup() {
       toast.error('Only audio files (.mp3, .wav) are accepted');
       return;
     }
-    setFiles((prev) => {
-      const combined = [...prev, ...audio];
+    setTracks((prev) => {
+      const combined = [...prev, ...audio.map(f => ({ file: f, volume: 80 }))];
       if (combined.length > MAX_FILES) {
         toast.error(`Upload limit reached — max ${MAX_FILES} files`);
         return combined.slice(0, MAX_FILES);
@@ -46,7 +69,11 @@ export default function ForgeMashup() {
     });
   }, []);
 
-  const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
+  const removeTrack = (idx: number) => setTracks((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateVolume = (idx: number, volume: number) => {
+    setTracks((prev) => prev.map((t, i) => i === idx ? { ...t, volume } : t));
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -55,7 +82,7 @@ export default function ForgeMashup() {
   }, [addFiles]);
 
   const handleGenerate = useCallback(async () => {
-    if (files.length === 0) {
+    if (tracks.length === 0) {
       toast.error('Upload at least one audio file');
       return;
     }
@@ -64,28 +91,34 @@ export default function ForgeMashup() {
     setResultUrl(null);
     setProgress(0);
     resultBlobRef.current = null;
+    setTerminalLines(['[AudioForge AI] Initializing mashup engine...', `[Config] Genre: ${genre} | Tracks: ${tracks.length}`]);
 
     try {
-      const mashupBuffer = await generateMashup(files, genre, (step, _label) => {
+      const files = tracks.map(t => t.file);
+      const mashupBuffer = await generateMashup(files, genre, (step, label) => {
         setStepIdx(step);
-        setProgress(Math.round(((step + 1) / PROGRESS_STEPS.length) * 85));
+        setProgress(Math.round(((step + 1) / TERMINAL_STEPS.length) * 85));
+        setTerminalLines(prev => [...prev, TERMINAL_STEPS[step]?.label || label]);
       });
 
       setProgress(90);
+      setTerminalLines(prev => [...prev, '> Encoding to 320kbps MP3...']);
       const mp3Blob = audioBufferToMp3(mashupBuffer);
       setProgress(100);
-      
+      setTerminalLines(prev => [...prev, `> ✅ Complete! Output: ${(mp3Blob.size / (1024 * 1024)).toFixed(1)} MB`]);
+
       resultBlobRef.current = mp3Blob;
       const url = URL.createObjectURL(mp3Blob);
       setResultUrl(url);
       toast.success('Mashup generated successfully!');
     } catch (err) {
       console.error('Mashup generation failed:', err);
+      setTerminalLines(prev => [...prev, `> ❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`]);
       toast.error('Generation failed — try again');
     } finally {
       setProcessing(false);
     }
-  }, [files, genre]);
+  }, [tracks, genre]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -114,7 +147,7 @@ export default function ForgeMashup() {
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground">AI Auto-Mashup Engine</h1>
           </div>
           <p className="text-muted-foreground max-w-xl">
-            Upload up to 10 tracks, pick a genre, and let our AI create a professional mashup — vocals isolated, beats matched, and mastered.
+            Upload up to 10 tracks with individual volume control. Our AI will isolate vocals, beat-match, and master a professional mashup.
           </p>
         </motion.div>
 
@@ -126,14 +159,10 @@ export default function ForgeMashup() {
             onDrop={handleDrop}
             className={`
               relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-10 cursor-pointer transition-all duration-300
-              ${dragging
-                ? 'border-primary bg-primary/5 scale-[1.01]'
-                : 'border-border hover:border-primary/40 hover:bg-secondary/30'
-              }
+              ${dragging ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-border hover:border-primary/40 hover:bg-secondary/30'}
             `}
           >
             <input
-              ref={fileInputRef}
               type="file"
               accept="audio/*"
               multiple
@@ -150,18 +179,13 @@ export default function ForgeMashup() {
           </label>
         </motion.div>
 
-        {/* File list */}
+        {/* Track list with volume sliders */}
         <AnimatePresence>
-          {files.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-4 space-y-2"
-            >
-              {files.map((f, i) => (
+          {tracks.length > 0 && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 space-y-2">
+              {tracks.map((t, i) => (
                 <motion.div
-                  key={`${f.name}-${i}`}
+                  key={`${t.file.name}-${i}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -172,15 +196,27 @@ export default function ForgeMashup() {
                     <Music className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{f.name}</p>
-                    <p className="text-xs text-muted-foreground">{(f.size / (1024 * 1024)).toFixed(1)} MB</p>
+                    <p className="text-sm font-medium text-foreground truncate">{t.file.name}</p>
+                    <p className="text-xs text-muted-foreground">{(t.file.size / (1024 * 1024)).toFixed(1)} MB</p>
                   </div>
-                  <button onClick={() => removeFile(i)} className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
+                  <div className="flex items-center gap-2 w-32 shrink-0">
+                    <Volume2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <Slider
+                      value={[t.volume]}
+                      min={0}
+                      max={100}
+                      step={1}
+                      onValueChange={([v]) => updateVolume(i, v)}
+                      className="flex-1"
+                    />
+                    <span className="text-[10px] font-mono text-muted-foreground w-7 text-right">{t.volume}%</span>
+                  </div>
+                  <button onClick={() => removeTrack(i)} className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </motion.div>
               ))}
-              <p className="text-xs text-muted-foreground text-right font-mono">{files.length}/{MAX_FILES} files</p>
+              <p className="text-xs text-muted-foreground text-right font-mono">{tracks.length}/{MAX_FILES} files</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -198,20 +234,9 @@ export default function ForgeMashup() {
             </button>
             <AnimatePresence>
               {genreOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="absolute z-30 mt-1 w-full rounded-xl bg-card border border-border shadow-xl overflow-hidden"
-                >
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute z-30 mt-1 w-full rounded-xl bg-card border border-border shadow-xl overflow-hidden">
                   {GENRES.map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => { setGenre(g); setGenreOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${g === genre ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-secondary/60'}`}
-                    >
-                      {g}
-                    </button>
+                    <button key={g} onClick={() => { setGenre(g); setGenreOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${g === genre ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-secondary/60'}`}>{g}</button>
                   ))}
                 </motion.div>
               )}
@@ -223,14 +248,10 @@ export default function ForgeMashup() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8">
           <button
             onClick={handleGenerate}
-            disabled={processing || files.length === 0}
-            className={`
-              relative w-full sm:w-auto px-10 py-4 rounded-xl font-bold text-base transition-all duration-300
-              ${processing || files.length === 0
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-primary text-primary-foreground hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)] hover:scale-[1.02] active:scale-[0.98]'
-              }
-            `}
+            disabled={processing || tracks.length === 0}
+            className={`relative w-full sm:w-auto px-10 py-4 rounded-xl font-bold text-base transition-all duration-300 ${
+              processing || tracks.length === 0 ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary text-primary-foreground hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)] hover:scale-[1.02] active:scale-[0.98]'
+            }`}
           >
             {processing ? (
               <span className="flex items-center gap-2">
@@ -240,47 +261,54 @@ export default function ForgeMashup() {
             ) : (
               <span className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
-                Generate Professional Mashup
+                Engage AI Mashup
               </span>
-            )}
-            {!processing && files.length > 0 && (
-              <span className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse pointer-events-none" />
             )}
           </button>
         </motion.div>
 
-        {/* Progress UI */}
+        {/* Terminal-style Progress */}
         <AnimatePresence>
           {processing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mt-8 p-6 rounded-2xl bg-card border border-border space-y-4"
-            >
-              {PROGRESS_STEPS.map((step, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0.3 }}
-                  animate={{ opacity: i <= stepIdx ? 1 : 0.3 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors duration-300 ${
-                    i < stepIdx ? 'bg-accent text-accent-foreground' : i === stepIdx ? 'bg-primary text-primary-foreground animate-pulse' : 'bg-secondary text-muted-foreground'
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="mt-8">
+              {/* Step indicators */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                {TERMINAL_STEPS.map((step, i) => (
+                  <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-500 ${
+                    i < stepIdx ? 'bg-accent/15 text-accent' : i === stepIdx ? 'bg-primary/15 text-primary animate-pulse' : 'bg-secondary/40 text-muted-foreground'
                   }`}>
-                    {i < stepIdx ? '✓' : i + 1}
+                    <span>{i < stepIdx ? '✅' : step.icon}</span>
+                    <span className="truncate">{i < stepIdx ? 'Done' : i === stepIdx ? 'Active...' : 'Pending'}</span>
                   </div>
-                  <span className={`text-sm ${i <= stepIdx ? 'text-foreground' : 'text-muted-foreground'}`}>{step.label}</span>
-                </motion.div>
-              ))}
-              {/* Progress bar */}
-              <div className="w-full h-2 bg-secondary/40 rounded-full overflow-hidden mt-2">
-                <motion.div
-                  className="h-full bg-primary rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
+                ))}
+              </div>
+
+              {/* Terminal window */}
+              <div className="rounded-2xl bg-[hsl(240,15%,5%)] border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-[hsl(240,12%,8%)] border-b border-border">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                    <div className="w-3 h-3 rounded-full bg-[hsl(45,100%,50%)]/60" />
+                    <div className="w-3 h-3 rounded-full bg-accent/60" />
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground ml-2">audioforge-ai-engine</span>
+                </div>
+                <div ref={terminalRef} className="p-4 max-h-48 overflow-y-auto font-mono text-xs space-y-1">
+                  {terminalLines.map((line, i) => (
+                    <motion.p key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={`${line.includes('✅') ? 'text-accent' : line.includes('❌') ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {line}
+                    </motion.p>
+                  ))}
+                  {processing && (
+                    <span className="inline-block w-2 h-4 bg-accent animate-pulse" />
+                  )}
+                </div>
+                {/* Progress bar */}
+                <div className="px-4 pb-3">
+                  <div className="w-full h-1.5 bg-secondary/40 rounded-full overflow-hidden">
+                    <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -289,12 +317,7 @@ export default function ForgeMashup() {
         {/* Result player */}
         <AnimatePresence>
           {resultUrl && !processing && (
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="mt-10 p-6 rounded-2xl bg-card border border-primary/30 shadow-[0_0_60px_hsl(var(--primary)/0.1)]"
-            >
+            <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} className="mt-10 p-6 rounded-2xl bg-card border border-primary/30 shadow-[0_0_60px_hsl(var(--primary)/0.1)]">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 rounded-lg bg-accent/15">
                   <Music className="w-5 h-5 text-accent" />
@@ -302,27 +325,40 @@ export default function ForgeMashup() {
                 <div>
                   <p className="text-foreground font-semibold">AI Generated Mashup</p>
                   <p className="text-xs text-muted-foreground font-mono">
-                    {genre} • {files.length} tracks blended
+                    {genre} • {tracks.length} tracks blended
                     {resultBlobRef.current && ` • ${(resultBlobRef.current.size / (1024 * 1024)).toFixed(1)} MB`}
                   </p>
                 </div>
               </div>
 
-              <audio ref={audioRef} src={resultUrl} onEnded={() => setPlaying(false)} />
+              <audio
+                ref={audioRef}
+                src={resultUrl}
+                onEnded={() => setPlaying(false)}
+                onTimeUpdate={() => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime); }}
+                onLoadedMetadata={() => { if (audioRef.current) setAudioDuration(audioRef.current.duration); }}
+              />
 
               <div className="flex items-center gap-3">
                 <button onClick={togglePlay} className="p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                   {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                 </button>
-                <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div className="h-full w-1/3 bg-primary rounded-full" />
+                <div className="flex-1">
+                  <Slider
+                    value={[currentTime]}
+                    max={audioDuration || 1}
+                    step={0.1}
+                    onValueChange={([v]) => { if (audioRef.current) audioRef.current.currentTime = v; }}
+                    className="cursor-pointer"
+                  />
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] font-mono text-muted-foreground">{Math.floor(currentTime / 60)}:{Math.floor(currentTime % 60).toString().padStart(2, '0')}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">{Math.floor(audioDuration / 60)}:{Math.floor(audioDuration % 60).toString().padStart(2, '0')}</span>
+                  </div>
                 </div>
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent/15 text-accent font-semibold text-sm hover:bg-accent/25 transition-colors"
-                >
+                <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent/15 text-accent font-semibold text-sm hover:bg-accent/25 transition-colors">
                   <Download className="w-4 h-4" />
-                  Download MP3
+                  MP3
                 </button>
               </div>
             </motion.div>
