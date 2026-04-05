@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight, Zap } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
