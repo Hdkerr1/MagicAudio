@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight, Zap } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
@@ -268,6 +268,24 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
               <p className="text-sm text-muted-foreground leading-relaxed">Paste any YouTube link and convert it into immersive 3D/8D spatial audio with professional-grade spatial engines.</p>
               <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <ArrowRight className="w-5 h-5 text-accent" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/forge/aurabypass')}
+              className="group relative p-6 rounded-2xl border border-border/60 glass transition-all duration-300 text-left hover:scale-[1.03] active:scale-[0.98] hover:border-primary/50 hover:shadow-[0_0_30px_hsl(var(--primary)/0.2)]"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-primary/10 w-fit transition-transform duration-300 group-hover:scale-110">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">DSP Engine</Badge>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-1">AuraBypass DSP</h3>
+              <p className="text-xs font-mono text-primary mb-3 opacity-70">Fingerprint Transform</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Paste a YouTube link and apply DSP presets to transform the audio fingerprint with pitch, tempo, and reverb processing.</p>
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ArrowRight className="w-5 h-5 text-primary" />
               </div>
             </button>
           </div>
