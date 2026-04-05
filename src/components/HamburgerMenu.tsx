@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Music, Waves, Volume2, Radio, Orbit, Speaker, Library, Crown, Shield, FileText, Scale, AlertTriangle, RotateCcw, Mail, Layers, Globe } from 'lucide-react';
+import { Menu, X, Music, Waves, Volume2, Radio, Orbit, Speaker, Library, Crown, Shield, FileText, Scale, AlertTriangle, RotateCcw, Mail, Layers, Globe, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import type { ProcessingMode } from '@/lib/audioProcessor';
