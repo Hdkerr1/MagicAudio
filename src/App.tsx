@@ -42,6 +42,7 @@ const App = () => (
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/forge/mashup" element={<ForgeMashup />} />
             <Route path="/forge/spatial" element={<ForgeSpatial />} />
+            <Route path="/forge/aurabypass" element={<ForgeAuraBypass />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
