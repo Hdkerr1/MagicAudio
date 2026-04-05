@@ -311,8 +311,8 @@ export default function ForgeAuraBypass() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="space-y-6 py-4 text-center"
                 >
-                  <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle className="w-10 h-10 text-green-400" />
+                  <div className="w-20 h-20 mx-auto rounded-full bg-accent/10 flex items-center justify-center">
+                    <CheckCircle className="w-10 h-10 text-accent" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-foreground mb-1">Processing Complete</h3>
@@ -320,7 +320,7 @@ export default function ForgeAuraBypass() {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <Button onClick={handleDownload} className="w-full h-12 gap-2 bg-green-600 hover:bg-green-700 rounded-xl">
+                    <Button onClick={handleDownload} className="w-full h-12 gap-2 bg-primary hover:bg-primary/90 rounded-xl">
                       <Download className="w-4 h-4" />
                       Download Processed Audio
                     </Button>
