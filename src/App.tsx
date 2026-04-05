@@ -17,6 +17,7 @@ import RefundPolicy from "./pages/RefundPolicy";
 import ContactUs from "./pages/ContactUs";
 import ForgeMashup from "./pages/ForgeMashup";
 import ForgeSpatial from "./pages/ForgeSpatial";
+import ForgeAuraBypass from "./pages/ForgeAuraBypass";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
