@@ -289,7 +289,7 @@ export default function ForgeAuraBypass() {
                         i <= stepIdx ? 'opacity-100' : 'opacity-20'
                       }`}>
                         {i < stepIdx ? (
-                          <CheckCircle className="w-3 h-3 text-green-400 shrink-0" />
+                          <CheckCircle className="w-3 h-3 text-accent shrink-0" />
                         ) : i === stepIdx ? (
                           <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0" />
                         ) : (
