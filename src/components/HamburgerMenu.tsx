@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Music, Waves, Volume2, Radio, Orbit, Speaker, Library, Crown, Shield, FileText, Scale, AlertTriangle, RotateCcw, Mail, Layers, Globe, Zap } from 'lucide-react';
+import { Menu, X, Music, Waves, Volume2, Radio, Orbit, Speaker, Library, Crown, Shield, FileText, Scale, AlertTriangle, RotateCcw, Mail, Layers, Move3d, Zap, Disc3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsageLimit } from '@/hooks/useUsageLimit';
 import type { ProcessingMode } from '@/lib/audioProcessor';
@@ -110,8 +110,8 @@ const HamburgerMenu = ({ onModeSelect }: HamburgerMenuProps) => {
                   onClick={() => { setOpen(false); navigate('/forge/spatial'); }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary/50 transition-colors text-left group"
                 >
-                  <Globe className="w-4 h-4 text-accent" />
-                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">YouTube → Spatial</span>
+                  <Move3d className="w-4 h-4 text-accent" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Immersive Audio Studio</span>
                 </button>
                 <button
                   onClick={() => { setOpen(false); navigate('/forge/aurabypass'); }}
@@ -119,6 +119,13 @@ const HamburgerMenu = ({ onModeSelect }: HamburgerMenuProps) => {
                 >
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">AuraBypass DSP</span>
+                </button>
+                <button
+                  onClick={() => { setOpen(false); navigate('/forge/lofi-mixer'); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary/50 transition-colors text-left group"
+                >
+                  <Disc3 className="w-4 h-4 text-accent" />
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Lo-Fi Ambient Mixer</span>
                 </button>
               </div>
             </div>

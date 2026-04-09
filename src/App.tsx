@@ -18,6 +18,7 @@ import ContactUs from "./pages/ContactUs";
 import ForgeMashup from "./pages/ForgeMashup";
 import ForgeSpatial from "./pages/ForgeSpatial";
 import ForgeAuraBypass from "./pages/ForgeAuraBypass";
+import ForgeLofiMixer from "./pages/ForgeLofiMixer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/forge/mashup" element={<ForgeMashup />} />
             <Route path="/forge/spatial" element={<ForgeSpatial />} />
             <Route path="/forge/aurabypass" element={<ForgeAuraBypass />} />
+            <Route path="/forge/lofi-mixer" element={<ForgeLofiMixer />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
