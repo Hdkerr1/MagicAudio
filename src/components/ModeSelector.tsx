@@ -1,4 +1,4 @@
-import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, Globe, ArrowRight, Zap } from 'lucide-react';
+import { Waves, Volume2, Radio, Music, Headphones, LogIn, LogOut, Orbit, Speaker, Layers, ArrowRight, Zap, Move3d, Disc3 } from 'lucide-react';
 import type { ProcessingMode } from '@/lib/audioProcessor';
 import Logo3D from './Logo3D';
 import { useState } from 'react';
@@ -256,16 +256,16 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 rounded-xl bg-accent/10 w-fit transition-transform duration-300 group-hover:scale-110">
-                  <Globe className="w-6 h-6 text-accent" />
+                  <Move3d className="w-6 h-6 text-accent" />
                 </div>
                 <Badge variant="outline" className="flex items-center gap-1 text-[10px] border-accent/30 text-accent">
                   <Headphones className="w-3 h-3" />
-                  YouTube Link
+                  File Upload
                 </Badge>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-1">YouTube → Spatial Audio</h3>
-              <p className="text-xs font-mono text-accent mb-3 opacity-70">Link-to-3D/8D Converter</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">Paste any YouTube link and convert it into immersive 3D/8D spatial audio with professional-grade spatial engines.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-1">Immersive Audio Studio</h3>
+              <p className="text-xs font-mono text-accent mb-3 opacity-70">3D/8D Spatial Engine</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Upload any audio file and add HRTF 3D panning, reverb, elevation, distance control, and 8D auto-rotation. Export as MP3 or WAV.</p>
               <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <ArrowRight className="w-5 h-5 text-accent" />
               </div>
@@ -283,9 +283,27 @@ const ModeSelector = ({ fileName, onModeSelect, onBack, onDemoSelect }: ModeSele
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-1">AuraBypass DSP</h3>
               <p className="text-xs font-mono text-primary mb-3 opacity-70">Fingerprint Transform</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">Paste a YouTube link and apply DSP presets to transform the audio fingerprint with pitch, tempo, and reverb processing.</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Upload audio and apply DSP presets to transform the audio fingerprint with pitch, tempo, and reverb — 100% client-side.</p>
               <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <ArrowRight className="w-5 h-5 text-primary" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/forge/lofi-mixer')}
+              className="group relative p-6 rounded-2xl border border-border/60 glass transition-all duration-300 text-left hover:scale-[1.03] active:scale-[0.98] hover:border-accent/50 hover:shadow-[0_0_30px_hsl(185_100%_50%/0.15)]"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-accent/10 w-fit transition-transform duration-300 group-hover:scale-110">
+                  <Disc3 className="w-6 h-6 text-accent" />
+                </div>
+                <Badge variant="outline" className="text-[10px] border-accent/30 text-accent">Ambient</Badge>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-1">Lo-Fi Ambient Mixer</h3>
+              <p className="text-xs font-mono text-accent mb-3 opacity-70">Soundboard + Visualizer</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Layer ambient pads (rain, vinyl crackle, cafe) over your music with 3 visualizer modes and record the mix as .webm.</p>
+              <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <ArrowRight className="w-5 h-5 text-accent" />
               </div>
             </button>
           </div>
