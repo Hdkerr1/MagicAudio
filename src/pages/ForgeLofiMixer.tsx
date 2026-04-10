@@ -110,8 +110,6 @@ export default function ForgeLofiMixer() {
   const noiseBufRef = useRef<AudioBuffer | null>(null);
   const trackSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const trackUrlRef = useRef('');
