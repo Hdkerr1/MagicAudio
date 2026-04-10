@@ -110,6 +110,7 @@ export default function ForgeLofiMixer() {
   const noiseBufRef = useRef<AudioBuffer | null>(null);
   const trackSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const visCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const trackUrlRef = useRef('');
@@ -136,7 +137,6 @@ export default function ForgeLofiMixer() {
 
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(rafRef.current);
       padEnginesRef.current.forEach(e => { try { e.source.stop(); } catch {} });
       try { ctxRef.current?.close(); } catch {}
       if (trackUrlRef.current) URL.revokeObjectURL(trackUrlRef.current);
@@ -212,7 +212,7 @@ export default function ForgeLofiMixer() {
       setRecording(false);
     } else {
       ensureCtx();
-      const canvas = canvasRef.current;
+      const canvas = visCanvasRef.current;
       if (!canvas || !destRef.current) return;
 
       const videoStream = canvas.captureStream(30);
