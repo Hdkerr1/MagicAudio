@@ -8,7 +8,7 @@ import {
 import { toast } from 'sonner';
 import ForgeLayout from '@/components/forge/ForgeLayout';
 import { Slider } from '@/components/ui/slider';
-
+import StudioVisualizer from '@/components/StudioVisualizer';
 /* ─── Ambient Pad Definitions ─── */
 interface Pad {
   id: string;
@@ -92,90 +92,7 @@ function createPadEngine(ctx: AudioContext, dest: AudioNode, padId: string, nois
   return { source, gain, filter };
 }
 
-/* ─── Neon Depth Ring Visualizer ─── */
-const ringParticles: { x: number; y: number; vx: number; vy: number; life: number; size: number; hue: number }[] = [];
-
-function drawNeonRing(ctx2d: CanvasRenderingContext2D, w: number, h: number, data: Uint8Array, time: number) {
-  const cx = w / 2, cy = h / 2;
-  const baseR = Math.min(w, h) * 0.22;
-  const bassAvg = Array.from(data.slice(0, 10)).reduce((a, b) => a + b, 0) / (10 * 255);
-  const midAvg = Array.from(data.slice(10, 60)).reduce((a, b) => a + b, 0) / (50 * 255);
-  const r = baseR + bassAvg * baseR * 1.2;
-  const count = data.length;
-  const sliceAngle = (2 * Math.PI) / count;
-
-  // Outer glow ring
-  const grad = ctx2d.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 2.5);
-  grad.addColorStop(0, `hsla(185, 100%, 50%, ${0.02 + bassAvg * 0.06})`);
-  grad.addColorStop(0.5, `hsla(270, 90%, 55%, ${0.01 + bassAvg * 0.03})`);
-  grad.addColorStop(1, 'transparent');
-  ctx2d.fillStyle = grad;
-  ctx2d.fillRect(0, 0, w, h);
-
-  // Inner 3D rings (multiple layers for depth)
-  for (let layer = 0; layer < 3; layer++) {
-    const layerR = r * (0.6 + layer * 0.25);
-    const alpha = 0.15 + layer * 0.25;
-    const hue = 185 + layer * 45;
-
-    ctx2d.beginPath();
-    for (let i = 0; i < count; i++) {
-      const val = data[i] / 255;
-      const rad = layerR + val * baseR * (0.3 + layer * 0.2);
-      const angle = i * sliceAngle - Math.PI / 2 + time * 0.0003 * (layer + 1);
-      const x = cx + Math.cos(angle) * rad;
-      const y = cy + Math.sin(angle) * rad;
-      i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
-    }
-    ctx2d.closePath();
-    ctx2d.strokeStyle = `hsla(${hue}, 90%, 60%, ${alpha})`;
-    ctx2d.lineWidth = 1.5 - layer * 0.3;
-    ctx2d.shadowColor = `hsla(${hue}, 100%, 50%, 0.4)`;
-    ctx2d.shadowBlur = 12;
-    ctx2d.stroke();
-    ctx2d.shadowBlur = 0;
-  }
-
-  // Center core
-  const coreGrad = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, baseR * 0.35);
-  coreGrad.addColorStop(0, `hsla(185, 100%, 70%, ${0.1 + bassAvg * 0.3})`);
-  coreGrad.addColorStop(1, 'transparent');
-  ctx2d.fillStyle = coreGrad;
-  ctx2d.beginPath();
-  ctx2d.arc(cx, cy, baseR * 0.35, 0, Math.PI * 2);
-  ctx2d.fill();
-
-  // Spawn particles on beat
-  if (bassAvg > 0.35 && ringParticles.length < 120) {
-    for (let n = 0; n < Math.floor(bassAvg * 6); n++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1.5 + Math.random() * 3 * bassAvg;
-      ringParticles.push({
-        x: cx + Math.cos(angle) * r * 0.5,
-        y: cy + Math.sin(angle) * r * 0.5,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 1,
-        size: 1.5 + Math.random() * 3 * midAvg,
-        hue: 185 + Math.random() * 90,
-      });
-    }
-  }
-
-  // Draw particles
-  for (let i = ringParticles.length - 1; i >= 0; i--) {
-    const p = ringParticles[i];
-    p.x += p.vx; p.y += p.vy; p.life -= 0.012;
-    if (p.life <= 0) { ringParticles.splice(i, 1); continue; }
-    ctx2d.beginPath();
-    ctx2d.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-    ctx2d.fillStyle = `hsla(${p.hue}, 90%, 65%, ${p.life * 0.7})`;
-    ctx2d.shadowColor = `hsla(${p.hue}, 100%, 60%, 0.3)`;
-    ctx2d.shadowBlur = 6;
-    ctx2d.fill();
-    ctx2d.shadowBlur = 0;
-  }
-}
+/* ─── (Visualizer moved to StudioVisualizer component) ─── */
 
 /* ─── Main Component ─── */
 export default function ForgeLofiMixer() {
@@ -205,7 +122,8 @@ export default function ForgeLofiMixer() {
     const master = ctx.createGain();
     master.gain.value = masterVol / 100;
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 512;
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.65;
     const dest = ctx.createMediaStreamDestination();
     master.connect(analyser);
     analyser.connect(ctx.destination);
