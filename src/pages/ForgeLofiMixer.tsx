@@ -266,7 +266,7 @@ export default function ForgeLofiMixer() {
           <div className="space-y-5">
             {/* Visualizer */}
             <div className="relative">
-              <StudioVisualizer getAnalyser={getAnalyser} />
+              <StudioVisualizer getAnalyser={getAnalyser} canvasRefCallback={(el) => { visCanvasRef.current = el; }} />
               {/* Record Video button */}
               <div className="absolute bottom-3 right-3 z-10">
                 <button
