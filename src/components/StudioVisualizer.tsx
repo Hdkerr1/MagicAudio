@@ -408,7 +408,7 @@ const StudioVisualizer = ({ getAnalyser, canvasRefCallback }: StudioVisualizerPr
           </TabsList>
         </Tabs>
       </div>
-      <canvas ref={canvasRef} className="w-full h-64 md:h-80 lg:h-96" style={{ display: 'block' }} />
+      <canvas ref={(el) => { (canvasRef as React.MutableRefObject<HTMLCanvasElement | null>).current = el; canvasRefCallback?.(el); }} className="w-full h-64 md:h-80 lg:h-96" style={{ display: 'block' }} />
     </div>
   );
 };
