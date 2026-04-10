@@ -245,43 +245,7 @@ export default function ForgeLofiMixer() {
     }
   }, [recording, ensureCtx]);
 
-  // Visualizer loop — Neon Depth Ring
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx2d = canvas.getContext('2d');
-    if (!ctx2d) return;
-
-    const draw = (t: number) => {
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx2d.fillStyle = 'rgba(6, 4, 16, 0.88)';
-      ctx2d.fillRect(0, 0, w, h);
-
-      if (analyserRef.current) {
-        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-        analyserRef.current.getByteFrequencyData(data);
-        drawNeonRing(ctx2d, w, h, data, t);
-      }
-      rafRef.current = requestAnimationFrame(draw);
-    };
-    rafRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
-
-  // Resize canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-    };
-    resize();
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
-  }, []);
+  const getAnalyser = useCallback(() => analyserRef.current, []);
 
   return (
     <ForgeLayout>
@@ -303,10 +267,10 @@ export default function ForgeLofiMixer() {
           {/* Left: Visualizer + Track */}
           <div className="space-y-5">
             {/* Visualizer */}
-            <div className="relative rounded-2xl overflow-hidden glass-3d">
-              <canvas ref={canvasRef} className="w-full h-64 md:h-80" />
+            <div className="relative">
+              <StudioVisualizer getAnalyser={getAnalyser} />
               {/* Record Video button */}
-              <div className="absolute bottom-3 right-3">
+              <div className="absolute bottom-3 right-3 z-10">
                 <button
                   onClick={toggleRecording}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -319,7 +283,7 @@ export default function ForgeLofiMixer() {
                 </button>
               </div>
               {recording && (
-                <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/20 border border-destructive/40">
+                <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/20 border border-destructive/40 z-10">
                   <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
                   <span className="text-[10px] font-mono text-destructive">REC</span>
                 </div>
