@@ -6,6 +6,7 @@ type VisMode = 'spectrum' | 'rta' | 'aura';
 
 interface StudioVisualizerProps {
   getAnalyser: () => AnalyserNode | null;
+  canvasRefCallback?: (el: HTMLCanvasElement | null) => void;
 }
 
 /* ─── Bass isolation: average of bins covering ~20-250Hz ─── */
@@ -318,7 +319,7 @@ function drawAura(ctx: CanvasRenderingContext2D, w: number, h: number, data: Uin
 }
 
 /* ─── Main Component ─── */
-const StudioVisualizer = ({ getAnalyser }: StudioVisualizerProps) => {
+const StudioVisualizer = ({ getAnalyser, canvasRefCallback }: StudioVisualizerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
   const [mode, setMode] = useState<VisMode>('spectrum');
