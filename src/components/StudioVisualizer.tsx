@@ -366,15 +366,12 @@ const StudioVisualizer = ({ getAnalyser }: StudioVisualizerProps) => {
       ctx2d.fillRect(0, 0, w, h);
 
       const analyser = getAnalyser();
-      let data: Uint8Array;
+      const data = new Uint8Array(analyser ? analyser.frequencyBinCount : 256);
       let bassVal = 0;
 
       if (analyser) {
-        data = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(data);
         bassVal = calcBassValue(data, analyser.frequencyBinCount, analyser.context.sampleRate);
-      } else {
-        data = new Uint8Array(256);
       }
 
       const currentMode = modeRef.current;
