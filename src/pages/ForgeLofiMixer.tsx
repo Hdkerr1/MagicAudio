@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   CloudRain, Disc3, Coffee, Waves, Bug, CloudLightning,
-  Upload, Play, Pause, Mic, Square, Download, Music, Trash2,
+  Upload, Play, Pause, Video, Square, Music, Trash2,
   Volume2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,29 +14,29 @@ interface Pad {
   id: string;
   label: string;
   icon: typeof CloudRain;
-  color: string;
+  hue: number;
   active: boolean;
   volume: number;
 }
 
 const INITIAL_PADS: Pad[] = [
-  { id: 'rain', label: 'Heavy Rain', icon: CloudRain, color: 'text-blue-400', active: false, volume: 60 },
-  { id: 'vinyl', label: 'Vinyl Crackle', icon: Disc3, color: 'text-amber-400', active: false, volume: 40 },
-  { id: 'cafe', label: 'Cafe Murmur', icon: Coffee, color: 'text-orange-400', active: false, volume: 50 },
-  { id: 'ocean', label: 'Ocean Waves', icon: Waves, color: 'text-cyan-400', active: false, volume: 55 },
-  { id: 'crickets', label: 'Night Crickets', icon: Bug, color: 'text-emerald-400', active: false, volume: 35 },
-  { id: 'thunder', label: 'Thunder', icon: CloudLightning, color: 'text-purple-400', active: false, volume: 45 },
+  { id: 'rain', label: 'Heavy Rain', icon: CloudRain, hue: 210, active: false, volume: 60 },
+  { id: 'vinyl', label: 'Vinyl Crackle', icon: Disc3, hue: 40, active: false, volume: 40 },
+  { id: 'cafe', label: 'Cafe Murmur', icon: Coffee, hue: 25, active: false, volume: 50 },
+  { id: 'ocean', label: 'Ocean Waves', icon: Waves, hue: 185, active: false, volume: 55 },
+  { id: 'crickets', label: 'Night Crickets', icon: Bug, hue: 150, active: false, volume: 35 },
+  { id: 'thunder', label: 'Thunder', icon: CloudLightning, hue: 270, active: false, volume: 45 },
 ];
 
-/* ─── Noise Generators using Web Audio API ─── */
+/* ─── Noise Generators ─── */
 type NoiseEngine = { source: AudioBufferSourceNode | OscillatorNode; gain: GainNode; filter?: BiquadFilterNode };
 
-function createNoiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer {
-  const length = ctx.sampleRate * durationSec;
-  const buf = ctx.createBuffer(2, length, ctx.sampleRate);
+function createNoiseBuffer(ctx: AudioContext, sec: number): AudioBuffer {
+  const len = ctx.sampleRate * sec;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
-    const data = buf.getChannelData(ch);
-    for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   }
   return buf;
 }
@@ -45,7 +45,6 @@ function createPadEngine(ctx: AudioContext, dest: AudioNode, padId: string, nois
   const gain = ctx.createGain();
   gain.gain.value = 0;
   gain.connect(dest);
-
   let source: AudioBufferSourceNode | OscillatorNode;
   let filter: BiquadFilterNode | undefined;
 
@@ -75,8 +74,8 @@ function createPadEngine(ctx: AudioContext, dest: AudioNode, padId: string, nois
       const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 4200;
       const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4200; f.Q.value = 12;
       const lfo = ctx.createOscillator(); lfo.frequency.value = 8;
-      const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.5;
-      lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+      const lfoG = ctx.createGain(); lfoG.gain.value = 0.5;
+      lfo.connect(lfoG); lfoG.connect(gain.gain);
       lfo.start(); osc.connect(f); f.connect(gain); source = osc; filter = f; break;
     }
     case 'thunder': {
@@ -89,75 +88,92 @@ function createPadEngine(ctx: AudioContext, dest: AudioNode, padId: string, nois
       s.connect(gain); source = s; break;
     }
   }
-
   source.start();
   return { source, gain, filter };
 }
 
-/* ─── Visualizer Styles ─── */
-type VisStyle = 'bars' | 'circle' | 'particles';
+/* ─── Neon Depth Ring Visualizer ─── */
+const ringParticles: { x: number; y: number; vx: number; vy: number; life: number; size: number; hue: number }[] = [];
 
-function drawBars(ctx2d: CanvasRenderingContext2D, w: number, h: number, data: Uint8Array) {
-  const barCount = 64;
-  const barW = w / barCount;
-  for (let i = 0; i < barCount; i++) {
-    const idx = Math.floor((i / barCount) * data.length);
-    const val = data[idx] / 255;
-    const barH = val * h * 0.85;
-    const hue = 260 + (i / barCount) * 60;
-    ctx2d.fillStyle = `hsla(${hue}, 80%, 60%, ${0.6 + val * 0.4})`;
-    ctx2d.fillRect(i * barW + 1, h - barH, barW - 2, barH);
-  }
-}
-
-function drawCircle(ctx2d: CanvasRenderingContext2D, w: number, h: number, data: Uint8Array) {
+function drawNeonRing(ctx2d: CanvasRenderingContext2D, w: number, h: number, data: Uint8Array, time: number) {
   const cx = w / 2, cy = h / 2;
-  const baseR = Math.min(w, h) * 0.2;
-  const bassAvg = Array.from(data.slice(0, 8)).reduce((a, b) => a + b, 0) / (8 * 255);
-  const r = baseR + bassAvg * baseR * 1.5;
-  const sliceAngle = (2 * Math.PI) / data.length;
+  const baseR = Math.min(w, h) * 0.22;
+  const bassAvg = Array.from(data.slice(0, 10)).reduce((a, b) => a + b, 0) / (10 * 255);
+  const midAvg = Array.from(data.slice(10, 60)).reduce((a, b) => a + b, 0) / (50 * 255);
+  const r = baseR + bassAvg * baseR * 1.2;
+  const count = data.length;
+  const sliceAngle = (2 * Math.PI) / count;
 
-  ctx2d.beginPath();
-  for (let i = 0; i < data.length; i++) {
-    const val = data[i] / 255;
-    const rad = r + val * baseR * 0.8;
-    const angle = i * sliceAngle - Math.PI / 2;
-    const x = cx + Math.cos(angle) * rad;
-    const y = cy + Math.sin(angle) * rad;
-    i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+  // Outer glow ring
+  const grad = ctx2d.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 2.5);
+  grad.addColorStop(0, `hsla(185, 100%, 50%, ${0.02 + bassAvg * 0.06})`);
+  grad.addColorStop(0.5, `hsla(270, 90%, 55%, ${0.01 + bassAvg * 0.03})`);
+  grad.addColorStop(1, 'transparent');
+  ctx2d.fillStyle = grad;
+  ctx2d.fillRect(0, 0, w, h);
+
+  // Inner 3D rings (multiple layers for depth)
+  for (let layer = 0; layer < 3; layer++) {
+    const layerR = r * (0.6 + layer * 0.25);
+    const alpha = 0.15 + layer * 0.25;
+    const hue = 185 + layer * 45;
+
+    ctx2d.beginPath();
+    for (let i = 0; i < count; i++) {
+      const val = data[i] / 255;
+      const rad = layerR + val * baseR * (0.3 + layer * 0.2);
+      const angle = i * sliceAngle - Math.PI / 2 + time * 0.0003 * (layer + 1);
+      const x = cx + Math.cos(angle) * rad;
+      const y = cy + Math.sin(angle) * rad;
+      i === 0 ? ctx2d.moveTo(x, y) : ctx2d.lineTo(x, y);
+    }
+    ctx2d.closePath();
+    ctx2d.strokeStyle = `hsla(${hue}, 90%, 60%, ${alpha})`;
+    ctx2d.lineWidth = 1.5 - layer * 0.3;
+    ctx2d.shadowColor = `hsla(${hue}, 100%, 50%, 0.4)`;
+    ctx2d.shadowBlur = 12;
+    ctx2d.stroke();
+    ctx2d.shadowBlur = 0;
   }
-  ctx2d.closePath();
-  ctx2d.strokeStyle = `hsla(280, 90%, 65%, 0.7)`;
-  ctx2d.lineWidth = 2;
-  ctx2d.stroke();
-  ctx2d.fillStyle = `hsla(280, 60%, 50%, 0.08)`;
-  ctx2d.fill();
-}
 
-const particles: { x: number; y: number; vx: number; vy: number; life: number; size: number }[] = [];
-function drawParticles(ctx2d: CanvasRenderingContext2D, w: number, h: number, data: Uint8Array) {
-  const energy = Array.from(data.slice(0, 16)).reduce((a, b) => a + b, 0) / (16 * 255);
-  // Spawn
-  if (energy > 0.3 && particles.length < 200) {
-    for (let n = 0; n < Math.floor(energy * 5); n++) {
-      particles.push({
-        x: Math.random() * w, y: h,
-        vx: (Math.random() - 0.5) * 2,
-        vy: -(1 + Math.random() * 3 * energy),
-        life: 1, size: 2 + Math.random() * 4 * energy,
+  // Center core
+  const coreGrad = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, baseR * 0.35);
+  coreGrad.addColorStop(0, `hsla(185, 100%, 70%, ${0.1 + bassAvg * 0.3})`);
+  coreGrad.addColorStop(1, 'transparent');
+  ctx2d.fillStyle = coreGrad;
+  ctx2d.beginPath();
+  ctx2d.arc(cx, cy, baseR * 0.35, 0, Math.PI * 2);
+  ctx2d.fill();
+
+  // Spawn particles on beat
+  if (bassAvg > 0.35 && ringParticles.length < 120) {
+    for (let n = 0; n < Math.floor(bassAvg * 6); n++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 3 * bassAvg;
+      ringParticles.push({
+        x: cx + Math.cos(angle) * r * 0.5,
+        y: cy + Math.sin(angle) * r * 0.5,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        size: 1.5 + Math.random() * 3 * midAvg,
+        hue: 185 + Math.random() * 90,
       });
     }
   }
-  // Update & draw
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx; p.y += p.vy; p.life -= 0.008;
-    if (p.life <= 0 || p.y < -10) { particles.splice(i, 1); continue; }
-    const hue = 200 + p.x / w * 80;
+
+  // Draw particles
+  for (let i = ringParticles.length - 1; i >= 0; i--) {
+    const p = ringParticles[i];
+    p.x += p.vx; p.y += p.vy; p.life -= 0.012;
+    if (p.life <= 0) { ringParticles.splice(i, 1); continue; }
     ctx2d.beginPath();
     ctx2d.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-    ctx2d.fillStyle = `hsla(${hue}, 80%, 60%, ${p.life * 0.7})`;
+    ctx2d.fillStyle = `hsla(${p.hue}, 90%, 65%, ${p.life * 0.7})`;
+    ctx2d.shadowColor = `hsla(${p.hue}, 100%, 60%, 0.3)`;
+    ctx2d.shadowBlur = 6;
     ctx2d.fill();
+    ctx2d.shadowBlur = 0;
   }
 }
 
@@ -168,7 +184,6 @@ export default function ForgeLofiMixer() {
   const [trackPlaying, setTrackPlaying] = useState(false);
   const [masterVol, setMasterVol] = useState(80);
   const [recording, setRecording] = useState(false);
-  const [visStyle, setVisStyle] = useState<VisStyle>('bars');
 
   const ctxRef = useRef<AudioContext | null>(null);
   const masterRef = useRef<GainNode | null>(null);
@@ -182,16 +197,15 @@ export default function ForgeLofiMixer() {
   const rafRef = useRef(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const trackUrlRef = useRef<string>('');
+  const trackUrlRef = useRef('');
 
-  // Initialize AudioContext
   const ensureCtx = useCallback(() => {
     if (ctxRef.current) return ctxRef.current;
     const ctx = new AudioContext();
     const master = ctx.createGain();
     master.gain.value = masterVol / 100;
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 512;
     const dest = ctx.createMediaStreamDestination();
     master.connect(analyser);
     analyser.connect(ctx.destination);
@@ -204,7 +218,6 @@ export default function ForgeLofiMixer() {
     return ctx;
   }, [masterVol]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       cancelAnimationFrame(rafRef.current);
@@ -214,12 +227,10 @@ export default function ForgeLofiMixer() {
     };
   }, []);
 
-  // Master volume
   useEffect(() => {
     if (masterRef.current) masterRef.current.gain.setTargetAtTime(masterVol / 100, masterRef.current.context.currentTime, 0.05);
   }, [masterVol]);
 
-  // Toggle pad
   const togglePad = useCallback((id: string) => {
     const ctx = ensureCtx();
     setPads(prev => prev.map(p => {
@@ -244,16 +255,12 @@ export default function ForgeLofiMixer() {
     }));
   }, [ensureCtx]);
 
-  // Pad volume change
   const setPadVolume = useCallback((id: string, vol: number) => {
     setPads(prev => prev.map(p => p.id === id ? { ...p, volume: vol } : p));
     const engine = padEnginesRef.current.get(id);
-    if (engine && ctxRef.current) {
-      engine.gain.gain.setTargetAtTime(vol / 100, ctxRef.current.currentTime, 0.05);
-    }
+    if (engine && ctxRef.current) engine.gain.gain.setTargetAtTime(vol / 100, ctxRef.current.currentTime, 0.05);
   }, []);
 
-  // Handle file upload
   const handleFile = useCallback((f: File) => {
     if (!f.type.startsWith('audio/')) { toast.error('Only audio files accepted'); return; }
     const ctx = ensureCtx();
@@ -262,14 +269,11 @@ export default function ForgeLofiMixer() {
     trackUrlRef.current = url;
     const audio = new Audio(url);
     audio.crossOrigin = 'anonymous';
-    audio.loop = false;
     audioElRef.current = audio;
-    setFile(f);
-    setTrackPlaying(false);
+    setFile(f); setTrackPlaying(false);
 
-    // Connect once metadata is ready
     audio.addEventListener('canplay', () => {
-      if (trackSourceRef.current) return; // already connected
+      if (trackSourceRef.current) return;
       try {
         const source = ctx.createMediaElementSource(audio);
         source.connect(masterRef.current!);
@@ -285,67 +289,76 @@ export default function ForgeLofiMixer() {
     else { audioElRef.current.play(); setTrackPlaying(true); }
   }, [trackPlaying]);
 
-  // Recording
+  // Video recording — canvas + audio
   const toggleRecording = useCallback(() => {
     if (recording) {
       recorderRef.current?.stop();
       setRecording(false);
     } else {
       ensureCtx();
-      if (!destRef.current) return;
+      const canvas = canvasRef.current;
+      if (!canvas || !destRef.current) return;
+
+      const videoStream = canvas.captureStream(30);
+      const audioStream = destRef.current.stream;
+      const merged = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        ...audioStream.getAudioTracks(),
+      ]);
+
       chunksRef.current = [];
-      const recorder = new MediaRecorder(destRef.current.stream, { mimeType: 'audio/webm;codecs=opus' });
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : 'video/webm';
+      const recorder = new MediaRecorder(merged, { mimeType });
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `lofi_mix_${Date.now()}.webm`; a.click();
+        a.href = url; a.download = `tunesence_mix_${Date.now()}.webm`; a.click();
         URL.revokeObjectURL(url);
-        toast.success('Recording saved!');
+        toast.success('Video mix saved!');
       };
       recorder.start();
       recorderRef.current = recorder;
       setRecording(true);
-      toast.info('Recording started — all audio is being captured');
+      toast.info('Recording video + audio…');
     }
   }, [recording, ensureCtx]);
 
-  // Visualizer loop
+  // Visualizer loop — Neon Depth Ring
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx2d = canvas.getContext('2d');
     if (!ctx2d) return;
 
-    const draw = () => {
+    const draw = (t: number) => {
       const w = canvas.width;
       const h = canvas.height;
-      ctx2d.clearRect(0, 0, w, h);
-      // Dark BG
-      ctx2d.fillStyle = 'rgba(10, 8, 20, 0.85)';
+      ctx2d.fillStyle = 'rgba(6, 4, 16, 0.88)';
       ctx2d.fillRect(0, 0, w, h);
 
       if (analyserRef.current) {
         const data = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteFrequencyData(data);
-        if (visStyle === 'bars') drawBars(ctx2d, w, h, data);
-        else if (visStyle === 'circle') drawCircle(ctx2d, w, h, data);
-        else drawParticles(ctx2d, w, h, data);
+        drawNeonRing(ctx2d, w, h, data, t);
       }
       rafRef.current = requestAnimationFrame(draw);
     };
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [visStyle]);
+  }, []);
 
   // Resize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-      canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * dpr;
+      canvas.height = canvas.clientHeight * dpr;
     };
     resize();
     window.addEventListener('resize', resize);
@@ -358,49 +371,41 @@ export default function ForgeLofiMixer() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 rounded-xl bg-primary/15">
-              <Disc3 className="w-6 h-6 text-primary" />
+            <div className="p-2.5 rounded-xl glass-3d glow-cyan">
+              <Disc3 className="w-6 h-6 text-accent" />
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Lo-Fi Ambient Mixer</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gradient-cyberpunk">TuneSence Studio V2</h1>
           </div>
           <p className="text-muted-foreground max-w-xl">
-            Layer ambient soundscapes over your music, visualize the frequencies in real-time, and record the mix — all in-browser.
+            Layer ambient soundscapes, visualize with a Neon Depth Ring, and export video mixes — 100% in-browser.
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        <div className="grid lg:grid-cols-[1fr_340px] gap-6">
           {/* Left: Visualizer + Track */}
           <div className="space-y-5">
             {/* Visualizer */}
-            <div className="relative rounded-2xl overflow-hidden border border-border bg-card">
-              <canvas ref={canvasRef} className="w-full h-56 md:h-72" />
-              {/* Vis style toggles */}
-              <div className="absolute top-3 right-3 flex gap-1">
-                {(['bars', 'circle', 'particles'] as VisStyle[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setVisStyle(s)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition-colors ${
-                      visStyle === s ? 'bg-primary/20 text-primary' : 'bg-background/60 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {s === 'bars' ? 'Bars' : s === 'circle' ? 'Circle' : 'Particles'}
-                  </button>
-                ))}
-              </div>
-              {/* Record button */}
+            <div className="relative rounded-2xl overflow-hidden glass-3d">
+              <canvas ref={canvasRef} className="w-full h-64 md:h-80" />
+              {/* Record Video button */}
               <div className="absolute bottom-3 right-3">
                 <button
                   onClick={toggleRecording}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     recording
-                      ? 'bg-destructive text-destructive-foreground animate-pulse'
-                      : 'bg-primary/15 text-primary hover:bg-primary/25'
+                      ? 'bg-destructive text-destructive-foreground animate-recording'
+                      : 'glass-3d text-accent hover:glow-cyan'
                   }`}
                 >
-                  {recording ? <><Square className="w-3 h-3" /> Stop</> : <><Mic className="w-3 h-3" /> Record Mix</>}
+                  {recording ? <><Square className="w-3.5 h-3.5" /> Stop Recording</> : <><Video className="w-3.5 h-3.5" /> Record Video Mix</>}
                 </button>
               </div>
+              {recording && (
+                <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/20 border border-destructive/40">
+                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-[10px] font-mono text-destructive">REC</span>
+                </div>
+              )}
             </div>
 
             {/* Track Uploader */}
@@ -408,19 +413,19 @@ export default function ForgeLofiMixer() {
               <label
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-                className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-secondary/20 p-10 cursor-pointer transition-all"
+                className="relative flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-accent/20 hover:border-accent/50 hover:glow-cyan p-10 cursor-pointer transition-all glass-3d"
               >
-                <input type="file" accept="audio/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="absolute inset-0 opacity-0 cursor-pointer" style={{ position: 'absolute' }} />
-                <Upload className="w-7 h-7 text-muted-foreground" />
+                <input type="file" accept="audio/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="absolute inset-0 opacity-0 cursor-pointer" />
+                <Upload className="w-7 h-7 text-accent/60" />
                 <div className="text-center">
                   <p className="text-foreground font-medium">Drop your base track here</p>
                   <p className="text-muted-foreground text-xs mt-1">.mp3 · .wav</p>
                 </div>
               </label>
             ) : (
-              <div className="p-4 rounded-2xl bg-card border border-border">
+              <div className="p-4 rounded-2xl glass-3d">
                 <div className="flex items-center gap-3">
-                  <button onClick={toggleTrack} className="p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                  <button onClick={toggleTrack} className="p-3 rounded-xl bg-accent text-accent-foreground hover:bg-accent/85 transition-colors glow-cyan">
                     {trackPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </button>
                   <div className="flex-1 min-w-0">
@@ -436,7 +441,6 @@ export default function ForgeLofiMixer() {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                {/* Master Volume */}
                 <div className="mt-3 flex items-center gap-3">
                   <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
                   <Slider value={[masterVol]} min={0} max={100} step={1} onValueChange={([v]) => setMasterVol(v)} className="flex-1" />
@@ -446,41 +450,63 @@ export default function ForgeLofiMixer() {
             )}
           </div>
 
-          {/* Right: Soundboard */}
+          {/* Right: 3D Soundboard */}
           <div className="space-y-3">
-            <h3 className="text-sm font-mono text-muted-foreground/60 uppercase tracking-widest px-1">Ambient Pads</h3>
-            {pads.map(pad => {
-              const Icon = pad.icon;
-              return (
-                <div key={pad.id} className={`rounded-xl border p-3 transition-all duration-200 ${
-                  pad.active ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'
-                }`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <button
-                      onClick={() => togglePad(pad.id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        pad.active ? 'bg-primary/20 text-primary' : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </button>
-                    <span className={`text-sm font-medium ${pad.active ? 'text-foreground' : 'text-muted-foreground'}`}>{pad.label}</span>
-                    <span className="ml-auto text-xs font-mono text-muted-foreground">{pad.volume}%</span>
+            <h3 className="text-sm font-mono text-accent/50 uppercase tracking-widest px-1">Ambient Pads</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {pads.map(pad => {
+                const Icon = pad.icon;
+                return (
+                  <motion.div
+                    key={pad.id}
+                    whileHover={{ scale: 1.04, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`rounded-xl border p-3 transition-all duration-200 cursor-pointer ${
+                      pad.active
+                        ? 'border-accent/40 glass-3d'
+                        : 'border-border bg-card hover:border-accent/20'
+                    }`}
+                    style={pad.active ? { boxShadow: `0 0 20px hsla(${pad.hue}, 80%, 55%, 0.25)` } : undefined}
+                    onClick={() => togglePad(pad.id)}
+                  >
+                    <div className="flex flex-col items-center gap-1.5 mb-2">
+                      <div className={`p-2 rounded-lg transition-colors ${
+                        pad.active ? 'bg-accent/20' : 'bg-secondary/50'
+                      }`}>
+                        <Icon className={`w-5 h-5 ${pad.active ? 'text-accent' : 'text-muted-foreground'}`} />
+                      </div>
+                      <span className={`text-xs font-medium text-center ${pad.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {pad.label}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Volume sliders for active pads */}
+            {pads.filter(p => p.active).length > 0 && (
+              <div className="space-y-2 pt-2">
+                <h4 className="text-[10px] font-mono text-muted-foreground/50 uppercase tracking-widest">Levels</h4>
+                {pads.filter(p => p.active).map(pad => (
+                  <div key={pad.id} className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-16 truncate">{pad.label}</span>
+                    <Slider
+                      value={[pad.volume]}
+                      min={0} max={100} step={1}
+                      onValueChange={([v]) => setPadVolume(pad.id, v)}
+                      className="flex-1"
+                    />
+                    <span className="text-[10px] font-mono text-muted-foreground w-7 text-right">{pad.volume}%</span>
                   </div>
-                  <Slider
-                    value={[pad.volume]}
-                    min={0} max={100} step={1}
-                    disabled={!pad.active}
-                    onValueChange={([v]) => setPadVolume(pad.id, v)}
-                  />
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         <p className="text-[10px] text-muted-foreground/40 text-center mt-8 font-mono">
-          100% client-side · Web Audio API · No data leaves your browser
+          100% client-side · Web Audio API + Canvas · Video export via MediaRecorder
         </p>
       </div>
     </ForgeLayout>

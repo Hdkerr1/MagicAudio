@@ -19,6 +19,7 @@ import ForgeMashup from "./pages/ForgeMashup";
 import ForgeSpatial from "./pages/ForgeSpatial";
 import ForgeAuraBypass from "./pages/ForgeAuraBypass";
 import ForgeLofiMixer from "./pages/ForgeLofiMixer";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/forge/spatial" element={<ForgeSpatial />} />
             <Route path="/forge/aurabypass" element={<ForgeAuraBypass />} />
             <Route path="/forge/lofi-mixer" element={<ForgeLofiMixer />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
